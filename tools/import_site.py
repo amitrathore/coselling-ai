@@ -14,6 +14,11 @@ API = "https://coselling.ai/wp-json/wp/v2/pages?per_page=100&_embed"
 UPLOAD_RE = re.compile(r"https?://[^\s\"'<>]+/wp-content/uploads/[^\s\"'<>]+", re.I)
 
 
+def remove_retired_phone(content: str) -> str:
+    """Keep the retired public support number out of refreshed page exports."""
+    return re.sub(r"(?:tel:)?1?-?844-?4SHPTYP|tel:18444747897|18444747897", "", content, flags=re.I)
+
+
 def fetch(url: str) -> bytes:
     result = subprocess.run(
         ["curl", "--silent", "--show-error", "--fail", "--location", url],
@@ -72,7 +77,7 @@ def main() -> None:
                 "slug": page["slug"],
                 "title": unescape(page["title"]["rendered"]),
                 "link": page["link"],
-                "content": page["content"]["rendered"],
+                "content": remove_retired_phone(page["content"]["rendered"]),
             }
         )
 

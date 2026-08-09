@@ -1,0 +1,72 @@
+[
+  {
+    "id": 375,
+    "slug": "profile-management",
+    "title": "Profile Management",
+    "link": "https://coselling.ai/integrations/profile-management/",
+    "content": ""
+  },
+  {
+    "id": 370,
+    "slug": "social-plugins",
+    "title": "Social Plugins",
+    "link": "https://coselling.ai/integrations/social-plugins/",
+    "content": ""
+  },
+  {
+    "id": 369,
+    "slug": "otp-secure-access",
+    "title": "OTP Secure Access",
+    "link": "https://coselling.ai/integrations/otp-secure-access/",
+    "content": ""
+  },
+  {
+    "id": 367,
+    "slug": "product-cms",
+    "title": "Product CMS",
+    "link": "https://coselling.ai/integrations/product-cms/",
+    "content": ""
+  },
+  {
+    "id": 365,
+    "slug": "ecommerce-management",
+    "title": "eCommerce Management",
+    "link": "https://coselling.ai/integrations/ecommerce-management/",
+    "content": ""
+  },
+  {
+    "id": 363,
+    "slug": "cosell-and-attribution",
+    "title": "Cosell and Attribution",
+    "link": "https://coselling.ai/integrations/cosell-and-attribution/",
+    "content": ""
+  },
+  {
+    "id": 360,
+    "slug": "smart-products",
+    "title": "Smart Products",
+    "link": "https://coselling.ai/integrations/smart-products/",
+    "content": ""
+  },
+  {
+    "id": 358,
+    "slug": "vendor-integration",
+    "title": "Vendor Integration",
+    "link": "https://coselling.ai/integrations/vendor-integration/",
+    "content": ""
+  },
+  {
+    "id": 352,
+    "slug": "multi-vendor-checkout",
+    "title": "Multi-vendor Checkout",
+    "link": "https://coselling.ai/integrations/multi-vendor-checkout/",
+    "content": ""
+  },
+  {
+    "id": 349,
+    "slug": "secure-payment-gateway",
+    "title": "Secure Payment Gateway",
+    "link": "https://coselling.ai/integrations/secure-payment-gateway/",
+    "content": ""
+  }
+]

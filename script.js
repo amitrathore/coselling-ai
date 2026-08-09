@@ -26,3 +26,14 @@ const observer = new IntersectionObserver((entries) => {
 }, { threshold: 0.12, rootMargin: '0px 0px -40px' });
 
 document.querySelectorAll('.reveal').forEach((element) => observer.observe(element));
+
+document.querySelector('.contact-form')?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const lines = [];
+  for (const [key, value] of data.entries()) lines.push(`${key}: ${value}`);
+  const subject = encodeURIComponent(`Coselling.ai inquiry from ${data.get('Name') || 'website visitor'}`);
+  const body = encodeURIComponent(lines.join('\n'));
+  window.location.href = `mailto:${form.dataset.email}?subject=${subject}&body=${body}`;
+});

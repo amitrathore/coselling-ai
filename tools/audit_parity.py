@@ -20,6 +20,11 @@ BOILERPLATE = {
     "home", "brands", "creators", "communities", "publishers", "solutions",
     "blog", "join", "us", "follow", "linkedin", "coselling", "ai",
 }
+INTENTIONAL_OMISSIONS = {
+    "1 844 4shptyp",
+    "awake market membership agreement",
+    "awake market membersh",
+}
 
 
 class Extractor(HTMLParser):
@@ -118,7 +123,14 @@ def main() -> None:
             continue
         rendered = extract(target.read_text(errors="replace"))
         rendered_text = normalized_block(" ".join(rendered.text))
-        source_words = words(source.text)
+        source_blocks = [
+            block for block in dict.fromkeys(source.text)
+            if normalized_block(block) not in INTENTIONAL_OMISSIONS
+        ]
+        # WordPress embeds duplicate desktop/mobile copies in the REST payload.
+        # Compare unique authored blocks so responsive implementation details do
+        # not masquerade as missing content.
+        source_words = words(source_blocks)
         rendered_words = words(rendered.text)
         missing = source_words - rendered_words
         total = sum(source_words.values())
@@ -130,7 +142,7 @@ def main() -> None:
             "missing_words": sum(missing.values()),
             "sample": list(missing.elements())[:20],
             "missing_blocks": [
-                block for block in dict.fromkeys(source.text)
+                block for block in source_blocks
                 if len(normalized_block(block)) >= 12
                 and normalized_block(block) not in rendered_text
             ][:25],

@@ -71,9 +71,9 @@ body:not(.inner-page) .nav-toggle span { background: white; }
 .hero-note { position: absolute; z-index: 2; bottom: 40px; left: max(5vw, calc((100vw - var(--max)) / 2)); display: flex; align-items: center; gap: 14px; color: white; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-decoration: none; text-transform: uppercase; }
 .hero-note i { display: grid; width: 34px; height: 34px; border: 1px solid white; border-radius: 50%; font-style: normal; place-items: center; }
 
-.conversation-band { display: flex; align-items: center; gap: 60px; overflow: hidden; padding: 17px 0; background: var(--navy); color: white; white-space: nowrap; }
-.conversation-band > p { flex: 0 0 auto; margin: 0 0 0 max(5vw, calc((100vw - var(--max)) / 2)); color: var(--yellow); font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
-.marquee { display: flex; gap: 28px; align-items: center; color: rgba(255,255,255,.78); font-family: var(--display); font-size: 1.2rem; font-weight: 750; animation: marquee 22s linear infinite; }
+.conversation-band { position: relative; display: flex; align-items: center; gap: 0; overflow: hidden; padding: 17px 0; background: var(--navy); color: white; white-space: nowrap; }
+.conversation-band > p { position: relative; z-index: 2; flex: 0 0 auto; margin: 0 0 0 max(5vw, calc((100vw - var(--max)) / 2)); padding-right: clamp(30px, 4vw, 64px); background: var(--navy); box-shadow: -100vw 0 0 100vw var(--navy), 18px 0 18px var(--navy); color: var(--yellow); font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.marquee { position: relative; z-index: 1; display: flex; gap: 28px; align-items: center; color: rgba(255,255,255,.78); font-family: var(--display); font-size: 1.2rem; font-weight: 750; animation: marquee 22s linear infinite; }
 .marquee b { color: var(--mint); }
 .section { padding: clamp(90px, 11vw, 150px) max(5vw, calc((100vw - var(--max)) / 2)); }
 .section-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; margin-bottom: 70px; }

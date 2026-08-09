@@ -50,7 +50,7 @@ body:not(.inner-page) .nav-toggle { border-color: white; }
 body:not(.inner-page) .nav-toggle span { background: white; }
 
 .hero { position: relative; display: flex; align-items: center; min-height: max(780px, 100svh); overflow: hidden; padding: 130px max(5vw, calc((100vw - var(--max)) / 2)) 95px; background: var(--paper); }
-.hero::before { position: absolute; z-index: 1; inset: 0; background: linear-gradient(90deg, rgba(11,32,86,.98) 0%, rgba(11,32,86,.94) 34%, rgba(11,32,86,.58) 52%, rgba(11,32,86,.06) 74%, transparent 100%); content: ""; }
+.hero::before { position: absolute; z-index: 1; inset: 0; background: linear-gradient(90deg, rgba(11,32,86,.99) 0%, rgba(11,32,86,.95) 31%, rgba(11,32,86,.76) 42%, rgba(11,32,86,.18) 58%, transparent 70%); content: ""; }
 .hero-copy { position: relative; z-index: 2; max-width: 650px; }
 .eyebrow { margin-bottom: 28px; color: var(--blue); font-size: .76rem; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
 .hero .eyebrow { color: var(--mint); }
@@ -62,8 +62,9 @@ body:not(.inner-page) .nav-toggle span { background: white; }
 .button-primary { background: var(--yellow); color: var(--navy); box-shadow: 0 12px 30px rgba(11,32,86,.2); }
 .button-primary span, .button-dark span, .button-light span { display: grid; width: 29px; height: 29px; border-radius: 50%; place-items: center; }
 .button-primary span { background: var(--navy); color: white; }
-.hero-network { position: absolute; z-index: 0; inset: 0; }
-.hero-network img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.hero-network { position: absolute; z-index: 0; top: clamp(142px, 17vh, 178px); right: clamp(20px, 2.7vw, 46px); width: min(74vw, 1200px); aspect-ratio: 1200 / 630; overflow: hidden; border: 1px solid rgba(255,255,255,.72); border-radius: clamp(22px, 2.2vw, 36px); background: rgba(247,249,253,.96); box-shadow: 0 42px 100px rgba(2,13,45,.34), 0 0 0 10px rgba(255,255,255,.07); animation: canvas-float 9s ease-in-out infinite alternate; }
+.hero-network::after { position: absolute; inset: 0; background: linear-gradient(118deg, transparent 30%, rgba(255,255,255,.34) 49%, transparent 68%); content: ""; pointer-events: none; }
+.hero-network img { width: 100%; height: 100%; padding: clamp(10px, 1.5vw, 22px); object-fit: contain; object-position: center; }
 .orbit { position: absolute; z-index: 0; border: 1px solid rgba(49,93,245,.18); border-radius: 50%; }
 .orbit-one { top: 8%; right: 3%; width: 61%; aspect-ratio: 1; animation: float 8s ease-in-out infinite; }
 .orbit-two { bottom: 6%; left: 11%; width: 43%; aspect-ratio: 1; border-color: rgba(88,223,202,.4); animation: float 10s ease-in-out infinite reverse; }
@@ -200,7 +201,8 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
 
 .reveal { opacity: 1; transform: none; }
 .js .reveal { opacity: 0; transform: translateY(24px); transition: opacity .75s ease, transform .75s ease; }
-.js .hero-copy.reveal, .js .hero-network.reveal { opacity: 1; transform: none; transition: none; }
+.js .hero-copy.reveal { opacity: 1; transform: none; transition: none; }
+.js .hero-network.reveal { opacity: 1; transition: none; }
 .reveal.is-visible { opacity: 1; transform: translateY(0); }
 .quote.reveal.is-visible:nth-child(even) { transform: translateY(26px) rotate(1deg); }
 .error-page { display: grid; min-height: 100vh; place-items: center; text-align: center; }
@@ -241,6 +243,7 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
 
 @keyframes sunspin { to { transform: rotate(360deg); } }
 @keyframes float { 50% { transform: translateY(-15px) scale(1.03); } }
+@keyframes canvas-float { from { transform: perspective(1400px) rotateY(-1.5deg) rotateZ(-.35deg) translateY(0); } to { transform: perspective(1400px) rotateY(-.4deg) rotateZ(.15deg) translateY(-10px); } }
 @keyframes marquee { to { transform: translateX(-35%); } }
 
 @media (max-width: 1050px) {
@@ -256,8 +259,8 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
   .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
   .nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
   .hero { padding-top: 150px; }
-  .hero::before { background: linear-gradient(90deg, rgba(11,32,86,.98) 0%, rgba(11,32,86,.9) 50%, rgba(11,32,86,.3) 76%, transparent 100%); }
-  .hero-network { margin: 0; }
+  .hero::before { background: linear-gradient(90deg, rgba(11,32,86,.99) 0%, rgba(11,32,86,.94) 43%, rgba(11,32,86,.34) 64%, transparent 78%); }
+  .hero-network { top: 165px; right: -8vw; width: 82vw; margin: 0; }
   .hero-note { display: none; }
   .audience-card { grid-template-columns: 1fr; }
   .audience-card--photo { grid-template-columns: 1fr 1fr; }
@@ -278,11 +281,13 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
   .wordmark { font-size: 1rem; }
   .sunmark { font-size: 1.8rem; }
   .hero { align-items: flex-start; justify-content: flex-start; min-height: 100svh; padding: 115px 20px 54px; }
-  .hero::before { background: linear-gradient(180deg, rgba(11,32,86,.98) 0%, rgba(11,32,86,.92) 48%, rgba(11,32,86,.62) 64%, rgba(11,32,86,.08) 88%, transparent 100%); }
+  .hero::before { background: linear-gradient(180deg, rgba(11,32,86,.99) 0%, rgba(11,32,86,.96) 48%, rgba(11,32,86,.68) 65%, rgba(11,32,86,.08) 90%, transparent 100%); }
   .hero-copy { max-width: 345px; }
   .hero h1 { font-size: clamp(3.1rem, 14vw, 4.7rem); }
   .hero-intro { max-width: 330px; font-size: .94rem; line-height: 1.48; }
-  .hero-network img { width: 100%; max-width: none; height: 100%; margin: 0; object-position: center bottom; }
+  .hero-network { top: auto; right: auto; bottom: 24px; left: -22.5vw; width: 145vw; max-width: none; border-radius: 24px; animation: none; transform: none; }
+  .js .hero-network.reveal { transform: none; }
+  .hero-network img { width: 100%; max-width: none; height: 100%; margin: 0; padding: 10px; object-position: center; }
   .orbit { display: none; }
   .section { padding: 85px 20px; }
   .section-heading { margin-bottom: 44px; }

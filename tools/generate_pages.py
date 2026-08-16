@@ -210,7 +210,7 @@ def page_html(title: str, content: str, route: str, kind: str = "") -> str:
 
 
 SOLUTION_CONTENT = """<h2>Do more with coselling.ai</h2><p>Harness the power of coselling.ai to increase revenue.</p><h3>Multi-Touch Attribution</h3><p>First party sales network where everyone in the sales funnel from introduction to close will get paid</p><h3>Universal Shopping Catalog</h3><p>One click import of product catalogs from all popular ecommerce platforms</p><h3>Universal Payments and Wallets</h3><p>Multi-currency payment and payout infrastructure using coselling.ai wallet</p><h3>Headless Ecommerce</h3><p>Create stunning storefronts with no code / low code environments</p><h3>Multi-Vendor Checkout</h3><p>Checkout products across multiple vendors in a single cart</p>"""
-NEWS_CONTENT = """<p>A borderless world economy powered by a secure and fair Internet that works for all. To empower the world’s largest salesforce, a global network of cosellers across all platforms of the Internet.</p><p><a href="../blog/">Blog</a></p>"""
+NEWS_CONTENT = """<p>A borderless world economy powered by a secure and fair Internet that works for all. To empower the world’s largest salesforce, a global network of cosellers across all platforms of the Internet.</p><p><a href="https://coselling.ai/blog/">Blog</a></p>"""
 CONTACT_FORM = """<form class="contact-form" data-email="info@coselling.ai.com"><div><label for="name">Name</label><input id="name" name="Name" autocomplete="name"></div><div><label for="email">Email</label><input id="email" name="Email" type="email" autocomplete="email" required></div><div><label for="phone">Phone</label><input id="phone" name="Phone" type="tel" autocomplete="tel"></div><div><label for="company">Company</label><input id="company" name="Company" autocomplete="organization"></div><div class="contact-form__wide"><label for="message">If you have a moment, tell us a little bit about your business and where it fits in the creator economy</label><textarea id="message" name="Message" rows="6"></textarea></div><fieldset class="contact-form__wide"><legend>Contact Preferences (Privacy Policy Link Below)</legend><label><input type="checkbox" name="Preferences" value="One-time contact">coselling.ai may contact me one time based on this request</label><label><input type="checkbox" name="Preferences" value="Regular news">coselling.ai may contact me from time to time to share news or relevant items</label><label><input type="checkbox" name="Preferences" value="Partner contact">coselling.ai Partners, Vendors and Cosellers may contact me to join my network or community</label></fieldset><button class="button button-primary" type="submit">Please Contact Me! <span>→</span></button></form>"""
 INTEGRATION_DETAIL = """<div class="integration-overview"><p class="eyebrow">Coselling.ai Integration</p><h2>Do more with coselling.ai</h2><p>Harness the power of coselling.ai to increase revenue.</p><a class="button button-primary" href="{href}">Explore all integrations <span>→</span></a></div>"""
 
@@ -236,9 +236,9 @@ def main() -> None:
         "integrations": {"title": "Integrations", "content": SOLUTION_CONTENT, "link": "https://coselling.ai/integrations/"},
         "news": {"title": "News", "content": NEWS_CONTENT, "link": "https://coselling.ai/news/"},
     }
-    for route, item in fallbacks.items():
-        if route not in routes or not item.get("content", "").strip():
-            routes[route] = item
+    for route, fallback in fallbacks.items():
+        if route not in routes or not routes[route].get("content", "").strip():
+            routes[route] = fallback
 
     output = ROOT / "pages"
     for route, item in sorted(routes.items()):

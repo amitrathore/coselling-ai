@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Coselling.ai</title>
+  <rect width="64" height="64" rx="16" fill="#0b2056"/>
+  <circle cx="32" cy="32" r="21" fill="none" stroke="#58dfca" stroke-width="1.5" opacity=".8"/>
+  <ellipse cx="32" cy="32" rx="27" ry="11" fill="none" stroke="#315df5" stroke-width="1.5" transform="rotate(-28 32 32)"/>
+  <circle cx="53" cy="21" r="3.2" fill="#ffd22e"/>
+  <circle cx="14" cy="45" r="2.6" fill="#ff7a50"/>
+  <path fill="#ffd22e" d="m32 9 3.7 14.6L47 15.5l-7.1 12.2L55 32l-15.1 4.3L47 48.5 35.7 40.4 32 55l-3.7-14.6L17 48.5l7.1-12.2L9 32l15.1-4.3L17 15.5l11.3 8.1L32 9Z"/>
+  <circle cx="32" cy="32" r="6.5" fill="#0b2056" stroke="#fff" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="2.4" fill="#58dfca"/>
+</svg>

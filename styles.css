@@ -626,6 +626,12 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
 .business-hero__visual img { width: 100%; height: auto; max-height: 560px; object-fit: contain; mix-blend-mode: multiply; }
 @media (max-width: 900px) { .business-hero__visual { width: min(100%, 700px); margin: 22px auto 0; } .business-hero__visual img { max-height: 430px; } }
 @media (max-width: 620px) { .business-hero__visual { margin-top: 10px; } .business-hero__visual img { max-height: none; } }
+
+.attribution__copy > p:last-child { margin: 28px 0 0; padding-top: 26px; border-top: 1px solid rgba(255,255,255,.3); color: rgba(255,255,255,.7); line-height: 1.75; }
+.attribution__visual { margin: 0; padding: 12px; background: white; color: var(--navy); transform: rotate(1deg); box-shadow: 14px 14px 0 var(--yellow); }
+.attribution__visual img { width: 100%; height: auto; }
+.attribution__visual figcaption { padding: 12px 6px 2px; font-size: .72rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+@media (max-width: 900px) { .attribution__visual { max-width: 720px; margin: 0 auto; } }
 .about-values header { display: grid; grid-template-columns: .78fr 1.22fr; gap: 0 9vw; margin-bottom: 75px; }
 .about-values header h2 { margin: 0; color: var(--navy); font-size: clamp(3.7rem, 6vw, 6.2rem); }
 .about-values header > p:last-child { grid-column: 2; max-width: 520px; margin-top: 30px; color: #566078; line-height: 1.7; }

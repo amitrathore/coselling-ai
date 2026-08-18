@@ -194,7 +194,7 @@ def dedupe_blocks(content: str, near: bool = False) -> str:
 def navigation(prefix: str) -> str:
     links = "".join(
         f'<a href="{prefix}pages/{slug}/">{label}</a>'
-        for slug, label in (("brands", "Brands"), ("creators", "Creators"), ("communities", "Communities"), ("publishers", "Publishers"), ("solutions", "Solutions"), ("blog", "Blog"))
+        for slug, label in (("brands", "Brands"), ("creators", "Creators"), ("communities", "Communities"), ("publishers", "Publishers"), ("solutions", "Solutions"))
     )
     return f'<nav id="site-nav" aria-label="Main navigation">{links}</nav>'
 

@@ -241,15 +241,24 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
 .integration-overview { max-width: 850px; padding: clamp(34px, 6vw, 70px); border: 1px solid var(--line); border-radius: 28px; background: white; box-shadow: 0 24px 70px rgba(11,32,86,.08); }
 .integration-overview h2 { margin: 0 0 22px; }
 .integration-overview p:not(.eyebrow) { margin-bottom: 34px; font-size: 1.1rem; }
-.contact-form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 850px; margin-top: 55px; padding: clamp(25px, 5vw, 55px); border-radius: 24px; background: white; box-shadow: 0 20px 55px rgba(11,32,86,.08); }
-.contact-form > div { display: flex; flex-direction: column; gap: 8px; }
-.contact-form label, .contact-form legend { font-size: .78rem; font-weight: 700; }
-.contact-form input:not([type="checkbox"]), .contact-form textarea { width: 100%; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font: inherit; }
-.contact-form textarea { resize: vertical; }
-.contact-form__wide { grid-column: 1 / -1; }
-.contact-form fieldset { display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 1px solid var(--line); border-radius: 8px; }
-.contact-form fieldset label { display: flex; gap: 10px; align-items: flex-start; font-weight: 500; }
-.contact-form .button { border: 0; cursor: pointer; }
+.lead-layout { display: grid; grid-template-columns: minmax(0, .9fr) minmax(420px, 1.1fr); gap: clamp(45px, 7vw, 92px); align-items: start; }
+.lead-copy { position: sticky; top: 38px; }
+.lead-copy > h2 { margin: 0 0 28px; color: var(--navy); font-size: clamp(3rem, 5.2vw, 5.2rem); }
+.lead-intro { max-width: 620px !important; margin-bottom: 45px !important; color: #3f4a67; font-size: 1.08rem !important; }
+.lead-paths { border-top: 1px solid var(--navy); }
+.lead-paths article { display: grid; grid-template-columns: 86px 1fr; gap: 8px 18px; padding: 23px 0; border-bottom: 1px solid var(--line); }
+.lead-paths span { grid-row: 1 / span 2; padding-top: 4px; color: var(--blue); font-size: .67rem; font-weight: 800; letter-spacing: .09em; }
+.lead-paths h3 { margin: 0; font-family: var(--body); font-size: 1rem; letter-spacing: -.02em; }
+.lead-paths p { margin: 0; color: #596079; font-size: .82rem; line-height: 1.55; }
+.lead-form-shell { overflow: hidden; padding: clamp(26px, 4vw, 48px); border: 1px solid var(--line); border-radius: 28px; background: white; box-shadow: 0 28px 80px rgba(11,32,86,.1); }
+.lead-form-head { margin-bottom: 15px; padding-bottom: 30px; border-bottom: 1px solid var(--line); }
+.lead-form-head .eyebrow { margin-bottom: 12px; }
+.lead-form-head h2 { margin: 0 0 13px; color: var(--navy); font-size: clamp(2.35rem, 4vw, 3.7rem); }
+.lead-form-head p:last-child { margin: 0; color: #596079; font-size: .9rem; }
+.lead-form-shell iframe { display: block; height: 1900px; min-height: 720px; overflow: hidden; border: 0; }
+.lead-form-status { margin: 5px 0 12px; color: var(--navy); font-weight: 700; }
+.lead-form-status:empty { display: none; }
+.lead-privacy { margin: 10px 0 0 !important; padding-top: 18px; border-top: 1px solid var(--line); color: #687089; font-size: .72rem !important; line-height: 1.55 !important; }
 
 @keyframes sunspin { to { transform: rotate(360deg); } }
 @keyframes float { 50% { transform: translateY(-15px) scale(1.03); } }
@@ -335,8 +344,20 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
   .inner-hero { padding: 80px 20px 65px; }
   .inner-hero h1 { font-size: clamp(3.3rem, 15vw, 5.5rem); }
   .legacy-content { padding: 70px 20px; }
-  .contact-form { grid-template-columns: 1fr; }
-  .contact-form__wide { grid-column: 1; }
+  .lead-layout { grid-template-columns: 1fr; }
+  .lead-copy { position: static; }
+  .lead-form-shell { margin-right: -6px; margin-left: -6px; padding: 24px 17px; border-radius: 20px; }
+  .lead-form-shell iframe { height: 2100px; }
+  .lead-paths { margin-bottom: 8px; }
+}
+
+@media (min-width: 701px) and (max-width: 1050px) {
+  .lead-layout { grid-template-columns: 1fr; }
+  .lead-copy { position: static; }
+  .lead-paths { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .lead-paths article { display: block; padding: 22px 18px; border-right: 1px solid var(--line); }
+  .lead-paths article:last-child { border-right: 0; }
+  .lead-paths h3 { margin: 18px 0 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

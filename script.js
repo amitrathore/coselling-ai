@@ -27,13 +27,30 @@ const observer = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.reveal').forEach((element) => observer.observe(element));
 
-document.querySelector('.contact-form')?.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const data = new FormData(form);
-  const lines = [];
-  for (const [key, value] of data.entries()) lines.push(`${key}: ${value}`);
-  const subject = encodeURIComponent(`Coselling.ai inquiry from ${data.get('Name') || 'website visitor'}`);
-  const body = encodeURIComponent(lines.join('\n'));
-  window.location.href = `mailto:${form.dataset.email}?subject=${subject}&body=${body}`;
+const tallyFrames = document.querySelectorAll('iframe[data-tally-src]:not([src])');
+
+if (tallyFrames.length) {
+  const loadTallyEmbeds = () => {
+    window.Tally?.loadEmbeds();
+    tallyFrames.forEach((frame) => {
+      if (!frame.src) frame.src = frame.dataset.tallySrc;
+    });
+  };
+  const tallyScript = document.createElement('script');
+  tallyScript.src = 'https://tally.so/widgets/embed.js';
+  tallyScript.onload = loadTallyEmbeds;
+  tallyScript.onerror = loadTallyEmbeds;
+  document.body.appendChild(tallyScript);
+}
+
+window.addEventListener('message', (event) => {
+  if (typeof event.data !== 'string' || !event.data.includes('Tally.FormSubmitted')) return;
+  try {
+    const { payload } = JSON.parse(event.data);
+    if (payload?.formId !== 'D4RKVp') return;
+    const status = document.querySelector('.lead-form-status');
+    if (status) status.textContent = 'Thanks — your details are in. We’ll route them to the right conversation.';
+  } catch (_) {
+    // Ignore unrelated cross-window messages.
+  }
 });

@@ -260,9 +260,14 @@ def main() -> None:
 
     output = ROOT / "pages"
     for route, item in sorted(routes.items()):
+        # This offer page is authored directly, even if a later export includes it.
+        if route == "launch-your-network":
+            continue
         title = "Join the Network" if route == "contactus" else item["title"]
         prefix = root_prefix(route)
         content = clean_content(item.get("content", ""), title, manifest, prefix)
+        if route == "sitemap":
+            content += f'<h3><a href="{prefix}pages/launch-your-network/">Launch Your Network</a></h3>'
         if route == "brands":
             content = BRANDS_CONTENT.format(
                 contact=f"{prefix}pages/contactus/",

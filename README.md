@@ -17,6 +17,7 @@ Then open `http://localhost:8000`.
 - All site images, illustrations, icons, styles, and first-party scripts are stored in this repository. The contact page loads its lead form from Tally.
 - `tools/import_site.py` refreshes the captured WordPress export and media archive.
 - `tools/generate_pages.py` regenerates secondary static pages from that export.
+- `pages/launch-your-network/index.html` is a hand-authored offer page. Edit it directly; the generator preserves it and includes its link in the sitemap. Its layout uses the scoped `.launch-*` rules in `styles.css`.
 - `tools/create_tally_lead_form.rb` idempotently provisions the published lead form when `TALLY_SO_API_KEY` is set.
 
 ## Deployment

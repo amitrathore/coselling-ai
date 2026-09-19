@@ -1,3 +1,59 @@
+/* Coseller Network launch offer: scoped to keep existing pages intact. */
+.business-hero__pricing { margin: 20px 0 0; max-width: 530px; color: #4d5873; font-size: .9rem; }
+.launch-page { background: #fff; }
+.launch-hero, .launch-included, .launch-opportunity, .launch-final { padding-right: max(5vw, calc((100vw - 1240px) / 2)); padding-left: max(5vw, calc((100vw - 1240px) / 2)); }
+.launch-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); align-items: start; gap: clamp(36px, 6vw, 90px); padding-top: 155px; padding-bottom: 70px; background: #f9fbff; }
+.launch-kicker { margin-bottom: 22px; color: #315df5; font-weight: 700; }
+.launch-hero h1 { margin-bottom: 25px; color: #0b2056; font-size: clamp(3.1rem, 5.4vw, 5.3rem); line-height: 1; }
+.launch-thesis { color: #0b2056; font-size: clamp(1.2rem, 1.9vw, 1.5rem); font-weight: 600; line-height: 1.4; }
+.launch-hero__copy > p:last-child { max-width: 57ch; margin-bottom: 0; color: #4d5873; font-size: 1.05rem; }
+.launch-offer { padding: clamp(24px, 3vw, 40px); background: #0b2056; color: #fff; border-radius: 18px; }
+.launch-offer h2 { margin-bottom: 24px; font-size: 1.9rem; line-height: 1.1; letter-spacing: -.025em; }
+.launch-pricing { margin: 0 0 24px; }
+.launch-pricing > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid #42537e; }
+.launch-pricing dt { max-width: 13ch; font-size: .94rem; color: #e0e7fb; }
+.launch-pricing dd { margin: 0; font-size: 2.2rem; font-weight: 750; white-space: nowrap; letter-spacing: -.04em; }
+.launch-pricing dd span { font-size: .95rem; letter-spacing: 0; font-weight: 400; }
+.launch-offer > p { font-size: .95rem; }
+.launch-offer .button { width: 100%; }
+.launch-offer .launch-offer__note { margin: 14px 0 20px; color: #e0e7fb; font-size: .8rem; }
+.launch-offer .launch-apps { margin: 0; padding-top: 18px; border-top: 1px solid #42537e; font-size: .84rem; }
+.launch-included { padding-top: 65px; padding-bottom: 65px; }
+.launch-section-heading { display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: end; margin-bottom: 30px; }
+.launch-section-heading h2, .launch-opportunity h2, .launch-final h2 { margin: 0; font-size: clamp(2.3rem, 3.5vw, 3.5rem); line-height: 1.06; }
+.launch-section-heading > p { max-width: 48ch; margin: 0; color: #4d5873; }
+.launch-features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 56px; }
+.launch-features article { padding: 23px 0; border-top: 1px solid rgba(11, 32, 86, .14); }
+.launch-features h3 { margin-bottom: 10px; color: #0b2056; font-size: 1.3rem; line-height: 1.2; letter-spacing: -.02em; }
+.launch-features p { max-width: 60ch; margin-bottom: 0; color: #4d5873; font-size: .96rem; }
+.launch-opportunity { display: grid; grid-template-columns: 1fr 1.1fr; gap: 65px; padding-top: 55px; padding-bottom: 55px; background: #f6f8fc; }
+.launch-opportunity h2 { color: #0b2056; }
+.launch-opportunity p:last-child { margin-bottom: 0; }
+.launch-final { display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; gap: 65px; padding-top: 60px; padding-bottom: 60px; background: #315df5; color: #fff; }
+.launch-final h2 { margin-bottom: 22px; }
+.launch-final p { max-width: 44ch; }
+.launch-final__action > p { line-height: 1.8; }
+.launch-final__action strong { font-size: 1.25rem; }
+.launch-final .launch-final__note { margin: 16px 0 0; font-size: .84rem; }
+@media (max-width: 1000px) {
+  .launch-hero { grid-template-columns: 1fr; gap: 35px; padding-top: 135px; }
+  .launch-hero__copy { max-width: 680px; }
+  .launch-offer { max-width: 580px; width: 100%; }
+}
+@media (max-width: 650px) {
+  .launch-hero, .launch-included, .launch-opportunity, .launch-final { padding-right: 22px; padding-left: 22px; }
+  .launch-hero { padding-top: 120px; padding-bottom: 45px; }
+  .launch-hero h1 { font-size: clamp(2.65rem, 11vw, 4rem); }
+  .launch-kicker { font-size: .88rem; }
+  .launch-section-heading, .launch-features, .launch-opportunity, .launch-final { grid-template-columns: 1fr; gap: 26px; }
+  .launch-features { gap: 0; }
+  .launch-included, .launch-opportunity, .launch-final { padding-top: 45px; padding-bottom: 45px; }
+  .launch-pricing dd { font-size: 1.9rem; }
+  .launch-pricing dt { font-size: .85rem; }
+  .launch-final .button { width: 100%; }
+  .home-business .business-hero__actions .button, .home-business .business-final .button { font-size: .85rem; gap: 10px; }
+}
+
 :root {
   --navy: #0b2056;
   --ink: #111936;

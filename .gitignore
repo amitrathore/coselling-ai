@@ -1,3 +1,12 @@
 .DS_Store
 .gstack/
 __pycache__/
+target/
+checkouts/
+.lein-failures
+pom.xml
+.nrepl-port
+.env
+.env.*
+.envrc
+.envrc.*

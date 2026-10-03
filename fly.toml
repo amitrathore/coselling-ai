@@ -1,0 +1,57 @@
+# Coselling.ai Game Master on fly.io, serving the coselling.ai site.
+#
+# Secrets, set once with `fly secrets set` (never here):
+#   MOM_GAME_TOKEN  Portal-issued credential for game `coselling-ai`
+#   GM_OWNER_ID     Portal user-id that created the game
+#
+# MOM_GM_OUTBOUND_TOKEN is deliberately not set: without it the GM does not
+# check that webhook calls come from MoM. Setting it to MoM's own value turns
+# the check on, with no code change.
+
+app = 'coselling-ai'
+# Nearest region to MoM, which runs in AWS us-west-1.
+primary_region = 'sjc'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[deploy]
+  # Stop the old machine before starting the new one. MoM holds one GM slot per
+  # (owner, group); two GMs alive at once during a rolling deploy can strand it
+  # on the machine that is about to go away.
+  strategy = 'immediate'
+
+[env]
+  GM_PORT = '8888'
+  GAME_NAME = 'coselling-ai'
+  # MoM prunes duplicate (owner, group) pairs across GMs; unique to this one.
+  PLAYER_GROUP_ID = 'gm-coselling-ai'
+  # Publishable, not secret. Same Clerk instance as the other GMs.
+  CLERK_PUBLISHABLE_KEY = 'pk_test_d29ya2luZy10ZXJyYXBpbi0xMC5jbGVyay5hY2NvdW50cy5kZXYk'
+  # This GM is outside MoM's VPC, so both directions use public addresses:
+  # the GM calls MoM here, and MoM calls the GM back at GM_URL.
+  MOM_URL = 'https://mom.intergraph.ai'
+  GM_URL = 'https://coselling-ai.fly.dev'
+  APP_BASE_URL = 'https://coselling.ai'
+  AUTH_BASE_URL = 'https://auth.intergraph.ai'
+
+[http_service]
+  internal_port = 8888
+  force_https = true
+  # Always on: MoM calls the GM at any time, and a stopped machine drops the
+  # GM's registration.
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = 'GET'
+    path = '/health'
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '30s'
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

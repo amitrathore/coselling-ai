@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
             [clojure.string :as str]
+            [game.gm.config :as gm-config]
             [coselling-ai.handlers :as handlers]))
 
 (defn- GET [uri & [query-string]]
@@ -93,3 +94,17 @@
 
 (deftest gm-routes-win-over-the-site
   (is (= 200 (:status (GET "/health")))))
+
+(deftest www-redirects-to-the-site-origin
+  ;; Sign-in returns to APP_BASE_URL, so the site lives on one origin only.
+  (with-redefs [gm-config/resolve-app-base-url (constantly "https://coselling.example")]
+    (let [on-host (fn [host uri & [query-string]]
+                    (handlers/app {:request-method :get :uri uri :query-string query-string
+                                   :scheme :https :headers {"host" host}}))
+          resp (on-host "www.coselling.example" "/pages/about-us/" "ref=tok-m")]
+      (is (= 301 (:status resp)))
+      (is (= "https://coselling.example/pages/about-us/?ref=tok-m"
+             (get-in resp [:headers "Location"])))
+      (is (= 200 (:status (on-host "coselling.example" "/pages/about-us/"))))
+      (is (= 200 (:status (on-host "coselling-ai.fly.dev" "/health")))
+          "MoM and the health check reach the GM by its fly.dev name"))))

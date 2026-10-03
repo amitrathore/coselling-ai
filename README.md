@@ -30,4 +30,17 @@ lein test
 
 ## Deployment
 
-`scripts/deploy.sh [sha-xxxxxxx]` deploys an image that is already in ECR, using `cfn/services/coselling-ai.yaml` from the infra repo (not written yet). Until the cutover, coselling.ai is still served by GitHub Pages from `master`, so the GM must not be merged to `master` before DNS points at the service.
+The GM runs on Fly.io as the app `coselling-ai` (`fly.toml`). flyctl authenticates with an app-scoped deploy token in `.envrc` (gitignored, loaded by direnv):
+
+```bash
+export FLY_API_TOKEN="<fly tokens create deploy -a coselling-ai>"
+```
+
+```bash
+fly deploy    # builds the Dockerfile and replaces the running machine
+fly logs      # the GM stops itself with exit 0 when MoM refuses its token; read the logs, not the exit code
+```
+
+`MOM_GAME_TOKEN` and `GM_OWNER_ID` are Fly secrets, from the `coselling-ai` game in production Portal. The GM reaches MoM at `https://mom.intergraph.ai`, and MoM calls it back at `https://coselling-ai.fly.dev`.
+
+Until the cutover, coselling.ai is still served by GitHub Pages from `master`, so the GM must not be merged to `master` before DNS points at Fly.

@@ -504,8 +504,26 @@
 
   (route/not-found {:status 404 :body {:error "Not found"}}))
 
+(defn- wrap-canonical-host
+  "Send www.<site> to the site's own origin (APP_BASE_URL), path and query
+   intact, as GitHub Pages did. Sign-in returns to APP_BASE_URL, so a session
+   started on www would otherwise land on a different origin. Every other host
+   passes through: MoM calls the GM at its fly.dev name."
+  [handler]
+  (fn [{:keys [uri query-string headers] :as request}]
+    (let [base (some-> (gm-config/resolve-app-base-url) (str/replace #"/+$" ""))
+          site-host (some-> base (str/replace #"^https?://" ""))
+          host (some-> (get headers "host") str/lower-case (str/replace #":\d+$" ""))]
+      (if (and site-host (= host (str "www." site-host)))
+        {:status 301
+         :headers {"Location" (cond-> (str base uri)
+                                (not (str/blank? query-string)) (str "?" query-string))}
+         :body ""}
+        (handler request)))))
+
 (def app
   (-> gm-routes
+      (wrap-canonical-host)
       (json-middleware/wrap-json-body {:keywords? true})
       ;; Anonymous visitor ids ride in a cookie so ?ref= history survives the
       ;; full navigation to the auth app, which destroys page state.

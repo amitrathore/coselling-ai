@@ -44,11 +44,12 @@
 (deftest coseller-policy-is-the-js-policy-stated-explicitly
   ;; Intergraph policy for every game, including the recursive 5% recruiter
   ;; share, as on Hey108. Stated explicitly so gm-lib default drift can't
-  ;; change Coselling.ai's economics silently.
+  ;; change Coselling.ai's economics silently. The attribution window is the
+  ;; one deliberate departure: 180 days rather than 30.
   (is (= {:algorithm "30-days-linear"
           :pool-share-bps 8000
           :referral-override-bps 500
-          :window-days 30
+          :window-days 180
           :payout-hold-days 30}
          (dissoc (get-in spec/game-spec [:initial-state :coseller :policy]) :history))))
 
@@ -80,3 +81,22 @@
   (is (= {:a 1 :b {:c 2 :d 3}}
          (handlers/overlay-state {:a 0 :b {:c 0 :d 3}} {:a 1 :b {:c 2}})))
   (is (= {:a 0} (handlers/overlay-state {:a 0} nil))))
+
+(deftest offer-listings-match-the-prices-on-the-offer-page
+  ;; The page is hand-edited HTML and the listing is what is charged; nothing
+  ;; else ties the two numbers together.
+  (let [page (slurp "resources/site/pages/launch-your-network/index.html")
+        by-id (into {} (map (juxt :id identity) spec/offer-listings))
+        setup (get by-id "launch-your-network-setup")
+        monthly (get by-id "network-platform-monthly")]
+    (is (= {:amount 499900 :currency "USD"} (get-in setup [:terms :price])))
+    (is (nil? (get-in setup [:terms :price :recurring])) "setup is one-time")
+    (is (= 29900 (get-in monthly [:terms :price :amount])))
+    (is (= {:interval :month} (get-in monthly [:terms :price :recurring])))
+    (is (clojure.string/includes? page "$4,999"))
+    (is (clojure.string/includes? page "$299"))
+    (is (= 4000 (:coseller-commission-bps setup)))
+    (is (= 3500 (:coseller-commission-bps monthly)))
+    (is (every? #(= ["networks"] (:category-slugs %)) spec/offer-listings)
+        "the category the market seed registers")))
+

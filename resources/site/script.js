@@ -67,7 +67,7 @@ window.addEventListener('message', (event) => {
     set(k, v, s = localStorage) { try { s.setItem(KEY(k), v); } catch (_) {} },
     drop(k, s = localStorage) { try { s.removeItem(KEY(k)); } catch (_) {} },
   };
-  const S = { session: null, authcfg: null, coseller: null };
+  const S = { session: null, authcfg: null, coseller: null, payments: null, purchases: null, subscriptions: null };
   const params = new URLSearchParams(location.search);
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -277,6 +277,105 @@ window.addEventListener('message', (event) => {
     render();
   }
 
+  /* ── Buying the Launch Your Network offer ───────────────────────────────
+     Two Market listings (see spec.clj), bought in two steps because one
+     checkout cannot mix a one-time price with a recurring one: setup first,
+     then the monthly platform subscription. Until payments are configured the
+     page keeps its plain contact link, which is also the no-JS fallback. */
+  const SETUP = 'launch-your-network-setup';
+  const MONTHLY = 'network-platform-monthly';
+  const OFFER_PATH = '/pages/launch-your-network/';
+  const LIVE_SUBSCRIPTION = ['active', 'pending-activation', 'past-due', 'cancel-at-period-end', 'paused'];
+  const plain = (v) => String(v ?? '').replace(/^:/, '');
+
+  async function loadPurchases() {
+    S.payments = await getJSON('/api/market/payment-mode', { credentials: 'omit', headers: {} });
+    S.purchases = null; S.subscriptions = null;
+    if (!seated() || !paymentsOn()) return;
+    S.purchases = await getJSON('/api/market/purchases');
+    S.subscriptions = (await getJSON('/api/market/subscriptions'))?.subscriptions || null;
+  }
+  const paymentsOn = () => !!S.payments?.mode && S.payments.mode !== 'unavailable';
+  const ordersFor = (id) => (S.purchases?.orders || []).filter((o) => o['capability-id'] === id);
+  const paidFor = (id) => ordersFor(id).some((o) => plain(o.status) === 'paid');
+  const subscribed = () => (S.subscriptions || []).some((s) =>
+    s['capability-id'] === MONTHLY && LIVE_SUBSCRIPTION.includes(plain(s.status)));
+
+  async function marketEvent(type, data) {
+    const r = await fetch('/events', { method: 'POST', credentials: 'include',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, auth()),
+      body: JSON.stringify({ 'event/type': type, 'event/data': data }) });
+    const body = await r.json().catch(() => ({}));
+    const result = body['gm-result'] || body;
+    if (!r.ok || result.success === false) {
+      throw new Error(result.error?.message || result.message || 'That did not go through. Try again?');
+    }
+    return result.data || {};
+  }
+  /* A checkout already awaiting payment is resumed, not duplicated. */
+  function pendingCheckout(id) {
+    const order = ordersFor(id).find((o) => plain(o.status) === 'pending-payment');
+    return order?.['checkout-id'] || null;
+  }
+  async function startCheckout(id, button) {
+    button.disabled = true;
+    try {
+      let checkoutId = pendingCheckout(id);
+      if (!checkoutId) {
+        const cartId = 'cart-' + (crypto.randomUUID?.() || Date.now() + '-' + Math.random().toString(16).slice(2));
+        await marketEvent('market/create-cart', { cart: { id: cartId } });
+        await marketEvent('market/add-to-cart', { 'cart-id': cartId, 'capability-id': id, quantity: 1 });
+        const accepted = await marketEvent('market/accept-cart-offers', { 'cart-id': cartId, 'require-all-valid': true });
+        checkoutId = accepted['checkout-id'] || accepted.checkouts?.[0]?.id;
+      }
+      if (!checkoutId) throw new Error('Could not start checkout. Try again?');
+      const r = await fetch('/api/market/checkout-session', { method: 'POST', credentials: 'include',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, auth()),
+        body: JSON.stringify({ 'checkout-id': checkoutId }) });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.error?.message || 'Payments are unavailable right now. Please try again shortly.');
+      if (body.url) { location.assign(body.url); return; }
+      toast('Test mode: your order is saved and no payment was taken.');
+    } catch (e) { toast(e.message); }
+    button.disabled = false;
+  }
+
+  function renderBuy(el) {
+    if (!paymentsOn()) return;   // leave the contact link in place
+    const talk = '<p class="gm-note">Prefer to talk first? <a href="/pages/contactus/">Tell us about your market</a>.</p>';
+    if (!signedIn()) {
+      const u = signInUrl();
+      if (!u) return;
+      el.innerHTML = `<a class="button button-primary" href="${esc(u)}" data-return="${OFFER_PATH}">Sign in to launch <span aria-hidden="true">→</span></a>${talk}`;
+    } else if (!seated()) {
+      el.innerHTML = `<a class="button button-primary" href="/pages/join/">Pick your handle to launch <span aria-hidden="true">→</span></a>
+        <p class="gm-note">Then come back to this page to pay.</p>`;
+    } else if (subscribed()) {
+      el.innerHTML = `<p><strong>Your platform subscription is active.</strong></p>
+        <p class="gm-note">Signed in as @${esc(seat().playerName)}.</p>`;
+    } else if (paidFor(SETUP)) {
+      el.innerHTML = `<p><strong>Setup is paid.</strong> Start the platform subscription when your network launches.</p>
+        <button class="button button-primary" type="button" data-buy="${MONTHLY}">Start subscription · $299/month <span aria-hidden="true">→</span></button>
+        <p class="gm-note">Signed in as @${esc(seat().playerName)}.</p>`;
+    } else {
+      el.innerHTML = `<button class="button button-primary" type="button" data-buy="${SETUP}">Pay setup and launch · $4,999 <span aria-hidden="true">→</span></button>
+        <p class="gm-note">Signed in as @${esc(seat().playerName)}. The $299/month platform fee starts when your network launches.</p>${talk}`;
+    }
+    el.querySelectorAll('[data-buy]').forEach((b) =>
+      b.addEventListener('click', () => startCheckout(b.dataset.buy, b)));
+  }
+  /* Stripe sends the buyer back here with ?market_checkout=…; say what happened
+     once, then clean the address. */
+  function announceCheckoutReturn() {
+    const outcome = params.get('market_checkout');
+    if (!outcome) return;
+    toast(outcome === 'cancel' ? 'Checkout cancelled. Nothing was charged.'
+                               : 'Payment received. Thank you. We will be in touch to start your launch.');
+    ['market_checkout', 'session_id', 'checkout_id'].forEach((p) => params.delete(p));
+    const q = params.toString();
+    history.replaceState({}, '', location.pathname + (q ? '?' + q : '') + location.hash);
+  }
+
   function render() {
     renderHeader();
     renderShareButton();
@@ -284,6 +383,8 @@ window.addEventListener('message', (event) => {
     if (join) renderJoin(join);
     const panel = document.querySelector('[data-gm="share"]');
     if (panel) renderShare(panel);
+    const buy = document.querySelector('[data-gm="buy"]');
+    if (buy) renderBuy(buy);
   }
 
   document.addEventListener('click', (ev) => {
@@ -299,7 +400,9 @@ window.addEventListener('message', (event) => {
     if (resumeReturn()) return;
     await claimIfNeeded();
     await loadCoseller();
+    if (document.querySelector('[data-gm="buy"]')) await loadPurchases();
     render();
+    announceCheckoutReturn();
   }
   boot();
 })();

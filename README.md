@@ -11,6 +11,18 @@
 - `src/coselling_ai/handlers.clj` — the MoM webhook, identity and visitor routes, and the static site.
 - `content/` and `tools/` — the original WordPress import. **Do not rerun `tools/generate_pages.py`**: the pages have been edited by hand since, and regenerating them would overwrite those edits.
 
+## Selling the offer
+
+The Launch Your Network offer is two Market listings, defined in `spec.clj` (`offer-listings`): the one-time setup fee and the monthly platform subscription. They are bought in two checkouts, because Market refuses one that mixes a one-time price with a recurring one. `coselling-ai.marketplace` is the payments boundary (Stripe checkout and webhooks), ported from agents-of-mind.
+
+The listings belong to the `coselling` seller player, not to the GM. Create that player and declare the listings with:
+
+```bash
+SELLER_OWNER_ID=<MoM user-id that owns the seller> lein run -m coselling-ai.listings
+```
+
+It reads the same environment as the GM and is safe to rerun. Checkout stays unavailable, and the offer page keeps its contact link, until `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` and `STRIPE_WEBHOOK_SECRET` are set and the game is onboarded as a merchant in Portal. `MARKET_PAYMENT_PROVIDER=stub` runs the whole flow locally without a processor.
+
 ## Run locally
 
 Needs intergraph-compose's MoM on :8080, plus a `coselling-ai` game created in local Portal (:8081) with a credential issued for it. Put them in `.env.local` (gitignored):

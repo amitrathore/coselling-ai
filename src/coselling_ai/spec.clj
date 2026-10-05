@@ -31,9 +31,50 @@
               {:slug "communities" :label "#communities"}
               {:slug "publishers"  :label "#publishers"}
               {:slug "operators"   :label "#operators"}]
-   ;; Offers transact through the market's own checkout once the payments
-   ;; boundary is ported from agents-of-mind.
+   ;; Empty on purpose: both listings below use the market's own checkout
+   ;; (coselling-ai.marketplace), not a seller-owned adapter.
    :commerce-adapters []})
+
+;; --- Listings ---
+;;
+;; The Launch Your Network offer as two Market capabilities, declared by the
+;; seller seat (never by the GM: only a registered seller may list). They are
+;; two listings rather than one because Market refuses a checkout that mixes a
+;; one-time price with a recurring one: setup is paid first, and the monthly
+;; subscription starts as its own checkout when the network launches.
+;;
+;; Amounts are minor units and must match the prices printed on
+;; resources/site/pages/launch-your-network/ (spec-test holds them together).
+;; :category-slugs are resolved to registry ids when the listings are declared.
+;; Each paid subscription invoice mints an ordinary paid order, so commission on
+;; the monthly listing is earned every month, not once.
+
+(def offer-listings
+  [{:id "launch-your-network-setup"
+    :kind :service
+    :title "Launch Your Network: setup and launch"
+    :description (str "One-time setup and launch of your branded Coseller Network: "
+                      "your website and the connected market and coselling "
+                      "capabilities, configured for launch.")
+    :terms {:price {:amount 499900 :currency "USD"}}
+    ;; Commission is the slice of the sale taken before the seller is paid;
+    ;; the coseller policy's :pool-share-bps (80%) of it goes to cosellers. A
+    ;; listing field: change it with market/update-capability, then here.
+    :coseller-commission-bps 4000
+    :category-slugs ["networks"]
+    :hashtag-slugs ["operators"]
+    :display-order 1}
+   {:id "network-platform-monthly"
+    :kind :service
+    :title "Coseller Network platform"
+    :description "Monthly platform fee for a launched Coseller Network."
+    :terms {:price {:amount 29900 :currency "USD" :recurring {:interval :month}}}
+    :coseller-commission-bps 3500
+    ;; One live platform subscription per buyer.
+    :commerce {:subscription-group "network-platform"}
+    :category-slugs ["networks"]
+    :hashtag-slugs ["operators"]
+    :display-order 2}])
 
 ;; --- Brand bible ---
 ;;
@@ -124,7 +165,11 @@
      :policy {:algorithm "30-days-linear"
               :pool-share-bps 8000
               :referral-override-bps 500
-              :window-days 30
+              ;; 180 days, set live with coseller/set-policy on 2026-10-04, so
+              ;; early supporters are credited for sales that take months to
+              ;; close; to be shortened later. The algorithm's name still says
+              ;; 30: it is the only one registered, and the window is this field.
+              :window-days 180
               :payout-hold-days 30
               :history []}
      :settlements {}

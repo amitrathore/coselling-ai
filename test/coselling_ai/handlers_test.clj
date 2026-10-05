@@ -3,7 +3,8 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [game.gm.config :as gm-config]
-            [coselling-ai.handlers :as handlers]))
+            [coselling-ai.handlers :as handlers]
+            [coselling-ai.spec :as spec]))
 
 (defn- GET [uri & [query-string]]
   (handlers/app {:request-method :get :uri uri :query-string query-string
@@ -108,3 +109,13 @@
       (is (= 200 (:status (on-host "coselling.example" "/pages/about-us/"))))
       (is (= 200 (:status (on-host "coselling-ai.fly.dev" "/health")))
           "MoM and the health check reach the GM by its fly.dev name"))))
+
+(deftest the-offer-page-can-start-a-checkout
+  ;; The buy panel is filled in by script.js; the ids it asks Market for must be
+  ;; the listings the seller declares.
+  (let [page (body (GET "/pages/launch-your-network/"))
+        script (body (GET "/script.js"))]
+    (is (str/includes? page "data-gm=\"buy\""))
+    (is (str/includes? page "../contactus/") "the contact link stays as the fallback")
+    (doseq [id (map :id spec/offer-listings)]
+      (is (str/includes? script (str "'" id "'")) id))))

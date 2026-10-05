@@ -9,9 +9,8 @@
    - everything else — the Coselling.ai site itself, served unchanged from
      `resources/site/` at the URLs it had on GitHub Pages (`/pages/<slug>/`).
 
-   Payments (Stripe checkout, Connect onboarding, webhooks) are not wired yet;
-   they will be ported from agents-of-mind's marketplace/payments/stripe
-   namespaces as their own step."
+   - `/api/market/*` and `/webhooks/stripe` — the payments boundary
+     (`coselling-ai.marketplace`), ported from agents-of-mind."
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
             [compojure.core :refer [defroutes GET POST OPTIONS]]
@@ -32,6 +31,7 @@
             [game.protocols.introspection :as introspection]
             [game.protocols.market :as market]
             [game.protocols.withdrawal :as withdrawal]
+            [coselling-ai.marketplace :as marketplace]
             [coselling-ai.spec :as spec]))
 
 ;; --- Logging ---
@@ -479,6 +479,8 @@
         {:status (or (:status result) 200)
          :body (dissoc result :status)})))
 
+  marketplace/routes
+
   (GET "/ui/public-state" [:as request]
     (let [gname (current-game-name)
           gid (some-> @gm-runtime/game-id str)]
@@ -525,6 +527,10 @@
   (-> gm-routes
       (wrap-canonical-host)
       (json-middleware/wrap-json-body {:keywords? true})
+      (marketplace/wrap-payment-readiness)
+      ;; Stripe signs the exact bytes, so they are captured before the JSON
+      ;; middleware consumes the body.
+      (marketplace/wrap-stripe-raw-body)
       ;; Anonymous visitor ids ride in a cookie so ?ref= history survives the
       ;; full navigation to the auth app, which destroys page state.
       (cookies/wrap-cookies)

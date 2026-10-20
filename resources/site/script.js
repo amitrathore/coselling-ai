@@ -174,7 +174,7 @@ window.addEventListener('message', (event) => {
     const cta = document.querySelector('.header-cta');
     if (!cta || !seated()) return;
     cta.href = '/pages/share/';
-    cta.innerHTML = `@${esc(seat().playerName)} <span aria-hidden="true">↗</span>`;
+    cta.innerHTML = `@${esc(seat().playerName)}${badge()} <span aria-hidden="true">↗</span>`;
   }
 
   /* Cosellers get a share button on every page: any page is a share link. */
@@ -259,10 +259,12 @@ window.addEventListener('message', (event) => {
           <button class="button button-dark" type="button" data-share>Share <span aria-hidden="true">↗</span></button>
         </div>
         <p class="gm-note">This links to the homepage. On any other page, use <strong>Share this page</strong> at the bottom right: the link carries your name wherever it goes.</p>
+        ${badgeOffer()}
         ${signOutUrl() ? `<p class="gm-note"><a href="${esc(signOutUrl())}" data-signout>Sign out</a></p>` : ''}`;
       el.querySelector('[data-copy]').addEventListener('click', () => copy(link));
       el.querySelector('[data-share]').addEventListener('click', () => share(link));
       el.querySelector('[data-signout]')?.addEventListener('click', () => store.drop('token'));
+      el.querySelector('[data-buy]')?.addEventListener('click', (ev) => startCheckout(BADGE, ev.currentTarget));
     }
   }
   async function activate(ev) {
@@ -284,6 +286,8 @@ window.addEventListener('message', (event) => {
      page keeps its plain contact link, which is also the no-JS fallback. */
   const SETUP = 'launch-your-network-setup';
   const MONTHLY = 'network-platform-monthly';
+  /* The $1 supporter badge, sold from the Share & Earn panel (spec.clj). */
+  const BADGE = 'i-love-coselling-badge';
   const OFFER_PATH = '/pages/launch-your-network/';
   const LIVE_SUBSCRIPTION = ['active', 'pending-activation', 'past-due', 'cancel-at-period-end', 'paused'];
   const plain = (v) => String(v ?? '').replace(/^:/, '');
@@ -298,6 +302,12 @@ window.addEventListener('message', (event) => {
   const paymentsOn = () => !!S.payments?.mode && S.payments.mode !== 'unavailable';
   const ordersFor = (id) => (S.purchases?.orders || []).filter((o) => o['capability-id'] === id);
   const paidFor = (id) => ordersFor(id).some((o) => plain(o.status) === 'paid');
+  const badge = () => paidFor(BADGE) ? ' <span class="gm-badge" title="I ♥ Coselling supporter">♥</span>' : '';
+  function badgeOffer() {
+    if (paidFor(BADGE)) return '<p class="gm-note"><span class="gm-badge">♥ Coselling</span> Thank you for supporting Coselling.ai.</p>';
+    if (!paymentsOn()) return '';
+    return `<p class="gm-note">Love what we're building? <button class="button button-dark" type="button" data-buy="${BADGE}">Get the I ♥ Coselling badge · $1</button></p>`;
+  }
   const subscribed = () => (S.subscriptions || []).some((s) =>
     s['capability-id'] === MONTHLY && LIVE_SUBSCRIPTION.includes(plain(s.status)));
 
@@ -369,8 +379,10 @@ window.addEventListener('message', (event) => {
   function announceCheckoutReturn() {
     const outcome = params.get('market_checkout');
     if (!outcome) return;
-    toast(outcome === 'cancel' ? 'Checkout cancelled. Nothing was charged.'
-                               : 'Payment received. Thank you. We will be in touch to start your launch.');
+    const thanks = location.pathname.startsWith('/pages/share')
+      ? 'Payment received. Thank you: your ♥ badge is on its way.'
+      : 'Payment received. Thank you. We will be in touch to start your launch.';
+    toast(outcome === 'cancel' ? 'Checkout cancelled. Nothing was charged.' : thanks);
     ['market_checkout', 'session_id', 'checkout_id'].forEach((p) => params.delete(p));
     const q = params.toString();
     history.replaceState({}, '', location.pathname + (q ? '?' + q : '') + location.hash);
@@ -400,7 +412,7 @@ window.addEventListener('message', (event) => {
     if (resumeReturn()) return;
     await claimIfNeeded();
     await loadCoseller();
-    if (document.querySelector('[data-gm="buy"]')) await loadPurchases();
+    if (document.querySelector('[data-gm="buy"], [data-gm="share"]')) await loadPurchases();
     render();
     announceCheckoutReturn();
   }

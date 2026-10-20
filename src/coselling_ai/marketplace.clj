@@ -5,7 +5,7 @@
             [game.gm.config :as gm-config] [game.gm.identity :as gm-identity]
             [game.gm.runtime :as gm-runtime] [coselling-ai.payments :as payments]
             [coselling-ai.seller-commerce :as seller-commerce]
-            [coselling-ai.stripe :as stripe]))
+            [coselling-ai.spec :as spec] [coselling-ai.stripe :as stripe]))
 
 (defn- current-game-name [] (some-> @gm-runtime/game-name-handle str))
 (defn- log! [level message & [data]] (println level message (pr-str data)))
@@ -514,16 +514,25 @@
                        (= currency (some-> (:currency %) str str/upper-case))) lines)
          (= (:amount total) (reduce + (map #(* (:amount %) (:quantity %)) lines))))))
 
+(defn return-path
+  "The page Stripe returns the buyer to, picked from what the checkout holds
+   (never from the request, so it cannot become an open redirect)."
+  [orders]
+  (or (some #(get spec/return-path-by-capability
+                  (str (or (:capability-id %) (get % "capability-id"))))
+            orders)
+      spec/default-return-path))
+
 (defn- success-url-template
-  []
+  [path]
   (str (or (gm-config/resolve-app-base-url) "")
-       "/pages/launch-your-network/?market_checkout=success&session_id={CHECKOUT_SESSION_ID}"))
+       path "?market_checkout=success&session_id={CHECKOUT_SESSION_ID}"))
 
 
 (defn- cancel-url-template
-  []
+  [path]
   (str (or (gm-config/resolve-app-base-url) "")
-       "/pages/launch-your-network/?market_checkout=cancel"))
+       path "?market_checkout=cancel"))
 
 
 (defn- seller-checkout-return-url
@@ -942,8 +951,10 @@
                                    :game-name game-name
                                    :line-items line-items
                                    :on-behalf-of (:on-behalf-of attribution)
-                                   :success-url (success-url-template)
-                                   :cancel-url (cancel-url-template)})]
+                                   :success-url (success-url-template
+                                                 (return-path orders-for-checkout))
+                                   :cancel-url (cancel-url-template
+                                                (return-path orders-for-checkout))})]
                   (if (:ok? result)
                     {:status 200 :body (cond-> {:url (:url result)
                                                 :provider (:provider result)}

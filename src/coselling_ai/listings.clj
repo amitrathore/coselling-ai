@@ -106,7 +106,7 @@
         existing (set (map :id (get-in (seller-event game-name "market/query-capabilities"
                                                      {:filters {:seller seller-name}})
                                        [:data :capabilities])))]
-    (doseq [listing spec/offer-listings
+    (doseq [listing (conj spec/offer-listings spec/badge-listing)
             :let [cap (capability listing categories hashtags)]]
       (if (contains? existing (:id cap))
         (do (seller-event game-name "market/update-capability"

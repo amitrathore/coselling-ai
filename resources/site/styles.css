@@ -953,6 +953,10 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
 .gm-note { color: #596079; font-size: .86rem; }
 .gm-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--coral); color: var(--white); font-size: .8em; font-weight: 750; }
 .gm-note .button { margin-top: 8px; padding: 10px 16px; }
+.gm-seat { padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,.15); }
+.gm-seat-switch { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; color: rgba(255,255,255,.7); font-size: .8rem; }
+.gm-seat-switch select { min-height: 44px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); font: inherit; font-size: .9rem; font-weight: 700; }
+.gm-panel .gm-seat-switch { color: var(--navy); }
 .gm-error { min-height: 1.2em; color: #c2330f; font-weight: 700; font-size: .9rem; }
 .gm-share-fab { position: fixed; right: 20px; bottom: 20px; z-index: 40; display: inline-flex; align-items: center; gap: 10px; padding: 13px 18px; border: 0; border-radius: 999px; background: var(--navy); color: white; font: inherit; font-size: .88rem; font-weight: 750; box-shadow: 0 14px 34px rgba(11,32,86,.28); cursor: pointer; transition: transform .2s; }
 .gm-share-fab:hover { transform: translateY(-3px); }

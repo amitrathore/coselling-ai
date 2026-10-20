@@ -67,7 +67,7 @@ window.addEventListener('message', (event) => {
     set(k, v, s = localStorage) { try { s.setItem(KEY(k), v); } catch (_) {} },
     drop(k, s = localStorage) { try { s.removeItem(KEY(k)); } catch (_) {} },
   };
-  const S = { session: null, authcfg: null, coseller: null, payments: null, purchases: null, subscriptions: null };
+  const S = { session: null, seats: [], authcfg: null, coseller: null, payments: null, purchases: null, subscriptions: null };
   const params = new URLSearchParams(location.search);
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -81,7 +81,14 @@ window.addEventListener('message', (event) => {
     const q = params.toString();
     history.replaceState({}, '', location.pathname + (q ? '?' + q : '') + location.hash);
   }
-  const auth = () => { const t = store.get('token'); return t ? { Authorization: 'Bearer ' + t } : {}; };
+  /* The seat the person chose in the footer rides on every request. Someone
+     who owns two seats (their own handle and a seller seat, say) gets no
+     selectedSeat without it, so every seat-gated surface treats them as new. */
+  const auth = () => {
+    const t = store.get('token'), seatName = store.get('seat');
+    if (!t) return {};
+    return seatName ? { Authorization: 'Bearer ' + t, 'X-Selected-Seat': seatName } : { Authorization: 'Bearer ' + t };
+  };
   const signedIn = () => !!S.session?.authenticated;
   const seat = () => S.session?.selectedSeat || null;
   const seated = () => !!seat()?.playerName;
@@ -122,6 +129,12 @@ window.addEventListener('message', (event) => {
   }
   async function loadSession() {
     S.session = await getJSON('/session');
+    S.seats = [];
+    if (S.session?.authenticated && (S.session.seatCount || 0) > 0) {
+      S.seats = (await getJSON('/seats'))?.seats || [];
+      const chosen = store.get('seat');
+      if (chosen && S.seats.length && !S.seats.some((x) => x.playerName === chosen)) store.drop('seat');
+    }
     S.authcfg = await getJSON('/auth.json', { credentials: 'omit', headers: {} });
   }
   async function loadCoseller() {
@@ -194,10 +207,49 @@ window.addEventListener('message', (event) => {
           : '<p class="gm-note">Sign-in is not available right now. Please try again shortly.</p>'}`;
   }
 
+  /* Seats: the same "Acting as" picker as Agents of Mind and Highway One, in
+     the footer of every page. Choosing one remembers it and reloads, so every
+     panel renders as that seat. */
+  const seatChoiceRequired = () => signedIn() && !seated() && S.seats.length > 0;
+  function seatPicker() {
+    if (S.seats.length < 2 && !seatChoiceRequired()) return '';
+    const chosen = seat()?.playerName || '';
+    return `<label class="gm-seat-switch">Acting as <select data-seat aria-label="Player seat">
+        <option value="" ${chosen ? '' : 'selected'} disabled>Choose a handle</option>
+        ${S.seats.map((x) => `<option value="${esc(x.playerName)}" ${x.playerName === chosen ? 'selected' : ''}>@${esc(x.playerName)}</option>`).join('')}
+      </select></label>`;
+  }
+  const chooseSeatBlock = () => `<p>You have more than one handle here. Choose the one to use:</p>${seatPicker()}`;
+  function selectSeat(name) {
+    if (!S.seats.some((x) => x.playerName === name)) return;
+    store.set('seat', name);
+    location.reload();
+  }
+  function renderSeatFooter() {
+    const footer = document.querySelector('footer');
+    if (!footer) return;
+    let el = footer.querySelector('[data-gm="seat"]');
+    const html = seatPicker();
+    if (!html) { el?.remove(); return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'gm-seat';
+      el.dataset.gm = 'seat';
+      const top = footer.querySelector('.footer-top');
+      if (top) top.after(el); else footer.prepend(el);
+    }
+    el.innerHTML = html;
+  }
+  document.addEventListener('change', (ev) => {
+    if (ev.target.matches?.('select[data-seat]')) selectSeat(ev.target.value);
+  });
+
   /* /pages/join/: sign in, then choose a permanent handle. */
   function renderJoin(el) {
     if (!signedIn()) {
       el.innerHTML = signInBlock('/pages/join/', 'Sign in with your email or Google account. Then pick your handle.');
+    } else if (seatChoiceRequired()) {
+      el.innerHTML = chooseSeatBlock();
     } else if (!seated()) {
       el.innerHTML = `<form class="gm-form" novalidate>
           <label for="gm-handle">Your handle</label>
@@ -231,6 +283,7 @@ window.addEventListener('message', (event) => {
         form.querySelector('button').disabled = false;
         return;
       }
+      store.set('seat', body.membership?.['player-name'] || body['player-name'] || name);
       await loadSession(); await claimIfNeeded();
       location.assign('/pages/share/');
     } catch (_) {
@@ -243,6 +296,8 @@ window.addEventListener('message', (event) => {
   function renderShare(el) {
     if (!signedIn()) {
       el.innerHTML = signInBlock('/pages/share/', 'Sign in to get your share link.');
+    } else if (seatChoiceRequired()) {
+      el.innerHTML = chooseSeatBlock();
     } else if (!seated()) {
       el.innerHTML = `<p>First, pick your handle.</p>
         <a class="button button-primary" href="/pages/join/">Pick a handle <span aria-hidden="true">→</span></a>`;
@@ -263,7 +318,7 @@ window.addEventListener('message', (event) => {
         ${signOutUrl() ? `<p class="gm-note"><a href="${esc(signOutUrl())}" data-signout>Sign out</a></p>` : ''}`;
       el.querySelector('[data-copy]').addEventListener('click', () => copy(link));
       el.querySelector('[data-share]').addEventListener('click', () => share(link));
-      el.querySelector('[data-signout]')?.addEventListener('click', () => store.drop('token'));
+      el.querySelector('[data-signout]')?.addEventListener('click', () => { store.drop('token'); store.drop('seat'); });
       el.querySelector('[data-buy]')?.addEventListener('click', (ev) => startCheckout(BADGE, ev.currentTarget));
     }
   }
@@ -357,6 +412,8 @@ window.addEventListener('message', (event) => {
       const u = signInUrl();
       if (!u) return;
       el.innerHTML = `<a class="button button-primary" href="${esc(u)}" data-return="${OFFER_PATH}">Sign in to launch <span aria-hidden="true">→</span></a>${talk}`;
+    } else if (seatChoiceRequired()) {
+      el.innerHTML = chooseSeatBlock();
     } else if (!seated()) {
       el.innerHTML = `<a class="button button-primary" href="/pages/join/">Pick your handle to launch <span aria-hidden="true">→</span></a>
         <p class="gm-note">Then come back to this page to pay.</p>`;
@@ -391,6 +448,7 @@ window.addEventListener('message', (event) => {
   function render() {
     renderHeader();
     renderShareButton();
+    renderSeatFooter();
     const join = document.querySelector('[data-gm="join"]');
     if (join) renderJoin(join);
     const panel = document.querySelector('[data-gm="share"]');

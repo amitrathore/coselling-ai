@@ -131,3 +131,12 @@
   (is (= "/pages/launch-your-network/"
          (marketplace/return-path [{"capability-id" "launch-your-network-setup"}])))
   (is (= "/pages/launch-your-network/" (marketplace/return-path []))))
+
+(deftest every-page-gets-the-footer-seat-picker
+  ;; script.js injects the picker into the footer, so every page needs one, and
+  ;; the chosen seat must ride on requests or a two-seat owner is never seated.
+  (let [script (body (GET "/script.js"))]
+    (is (str/includes? script "X-Selected-Seat"))
+    (is (str/includes? script "'/seats'"))
+    (doseq [page (site-pages)]
+      (is (str/includes? (body (GET page)) "<footer") page))))

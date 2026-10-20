@@ -76,6 +76,29 @@
     :hashtag-slugs ["operators"]
     :display-order 2}])
 
+;; A $1 supporter badge, sold from the Share & Earn panel. A real product, and
+;; the cheapest way to run the live money path (checkout, webhook, refund,
+;; coseller attribution) end to end. The badge is shown from the buyer's paid
+;; order; account-entitlement records that it belongs to the buying player.
+(def badge-listing
+  {:id "i-love-coselling-badge"
+   :kind :digital
+   :title "I ♥ Coselling badge"
+   :description "A supporter badge beside your @handle on coselling.ai."
+   :terms {:price {:amount 100 :currency "USD"}}
+   :coseller-commission-bps 3000
+   :commerce {:fulfillment {:type :account-entitlement :recipient {:type :player}}}
+   :category-slugs ["networks"]
+   :hashtag-slugs ["communities"]
+   :display-order 3})
+
+;; Where Stripe sends a buyer back to, by what they bought. Anything not listed
+;; returns to the offer page.
+(def return-path-by-capability
+  {"i-love-coselling-badge" "/pages/share/"})
+
+(def default-return-path "/pages/launch-your-network/")
+
 ;; --- Brand bible ---
 ;;
 ;; The seed, not the canon: {:name :mission}, the-js's shape. The mission is

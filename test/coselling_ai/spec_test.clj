@@ -100,3 +100,17 @@
     (is (every? #(= ["networks"] (:category-slugs %)) spec/offer-listings)
         "the category the market seed registers")))
 
+
+(deftest the-supporter-badge-is-a-one-dollar-player-entitlement
+  (let [badge spec/badge-listing
+        seeded (set (map :slug (get-in spec/game-spec [:market-seed :hashtags])))]
+    (is (= {:amount 100 :currency "USD"} (get-in badge [:terms :price])))
+    (is (nil? (get-in badge [:terms :price :recurring])) "one-time")
+    (is (= 3000 (:coseller-commission-bps badge)))
+    (is (set/subset? (set (:hashtag-slugs badge)) seeded)
+        "listings.clj throws on a slug the seed never registered")
+    (is (= {:type :account-entitlement :recipient {:type :player}}
+           (get-in badge [:commerce :fulfillment])))
+    (is (not (contains? (set (map :id spec/offer-listings)) (:id badge)))
+        "kept out of the offer listings")
+    (is (= "/pages/share/" (get spec/return-path-by-capability (:id badge))))))

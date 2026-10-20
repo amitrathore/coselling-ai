@@ -4,6 +4,7 @@
             [clojure.string :as str]
             [game.gm.config :as gm-config]
             [coselling-ai.handlers :as handlers]
+            [coselling-ai.marketplace :as marketplace]
             [coselling-ai.spec :as spec]))
 
 (defn- GET [uri & [query-string]]
@@ -119,3 +120,14 @@
     (is (str/includes? page "../contactus/") "the contact link stays as the fallback")
     (doseq [id (map :id spec/offer-listings)]
       (is (str/includes? script (str "'" id "'")) id))))
+
+(deftest the-share-panel-can-sell-the-badge
+  (let [script (body (GET "/script.js"))]
+    (is (str/includes? script (str "'" (:id spec/badge-listing) "'")))))
+
+(deftest stripe-returns-the-buyer-to-what-they-bought
+  (is (= "/pages/share/"
+         (marketplace/return-path [{:capability-id "i-love-coselling-badge"}])))
+  (is (= "/pages/launch-your-network/"
+         (marketplace/return-path [{"capability-id" "launch-your-network-setup"}])))
+  (is (= "/pages/launch-your-network/" (marketplace/return-path []))))

@@ -140,3 +140,11 @@
     (is (str/includes? script "'/seats'"))
     (doseq [page (site-pages)]
       (is (str/includes? (body (GET page)) "<footer") page))))
+
+(deftest anyone-can-see-the-badge-on-share-and-earn
+  ;; The card is filled in by script.js in every state, signed out included;
+  ;; buying still needs a handle.
+  (let [page (body (GET "/pages/share/"))
+        script (body (GET "/script.js"))]
+    (is (str/includes? page "data-gm=\"badge\""))
+    (is (str/includes? script "renderBadge(badgeEl)"))))

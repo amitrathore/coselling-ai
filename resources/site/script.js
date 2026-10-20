@@ -314,12 +314,10 @@ window.addEventListener('message', (event) => {
           <button class="button button-dark" type="button" data-share>Share <span aria-hidden="true">↗</span></button>
         </div>
         <p class="gm-note">This links to the homepage. On any other page, use <strong>Share this page</strong> at the bottom right: the link carries your name wherever it goes.</p>
-        ${badgeOffer()}
         ${signOutUrl() ? `<p class="gm-note"><a href="${esc(signOutUrl())}" data-signout>Sign out</a></p>` : ''}`;
       el.querySelector('[data-copy]').addEventListener('click', () => copy(link));
       el.querySelector('[data-share]').addEventListener('click', () => share(link));
       el.querySelector('[data-signout]')?.addEventListener('click', () => { store.drop('token'); store.drop('seat'); });
-      el.querySelector('[data-buy]')?.addEventListener('click', (ev) => startCheckout(BADGE, ev.currentTarget));
     }
   }
   async function activate(ev) {
@@ -358,10 +356,30 @@ window.addEventListener('message', (event) => {
   const ordersFor = (id) => (S.purchases?.orders || []).filter((o) => o['capability-id'] === id);
   const paidFor = (id) => ordersFor(id).some((o) => plain(o.status) === 'paid');
   const badge = () => paidFor(BADGE) ? ' <span class="gm-badge" title="I ♥ Coselling supporter">♥</span>' : '';
-  function badgeOffer() {
-    if (paidFor(BADGE)) return '<p class="gm-note"><span class="gm-badge">♥ Coselling</span> Thank you for supporting Coselling.ai.</p>';
-    if (!paymentsOn()) return '';
-    return `<p class="gm-note">Love what we're building? <button class="button button-dark" type="button" data-buy="${BADGE}">Get the I ♥ Coselling badge · $1</button></p>`;
+  /* /pages/share/: the $1 badge, visible to everyone. Buying needs a handle,
+     because Market records every order against a buyer. */
+  function renderBadge(el) {
+    if (!paymentsOn()) { el.hidden = true; return; }
+    el.hidden = false;
+    if (paidFor(BADGE)) {
+      el.innerHTML = '<p><span class="gm-badge">♥ Coselling</span> Thank you for supporting Coselling.ai.</p>';
+      return;
+    }
+    const head = `<p class="gm-badge-title"><span class="gm-badge">♥</span> I ♥ Coselling badge · $1</p>
+      <p class="gm-note">A supporter badge beside your @handle on coselling.ai.</p>`;
+    let action;
+    if (!signedIn()) {
+      const u = signInUrl();
+      action = u ? `<a class="button button-dark" href="${esc(u)}" data-return="/pages/share/">Sign in to get it · $1</a>` : '';
+    } else if (seatChoiceRequired()) {
+      action = `<p class="gm-note">Choose your handle to buy:</p>${seatPicker()}`;
+    } else if (!seated()) {
+      action = '<a class="button button-dark" href="/pages/join/">Pick a handle to get it</a>';
+    } else {
+      action = `<button class="button button-dark" type="button" data-buy="${BADGE}">Get the badge · $1</button>`;
+    }
+    el.innerHTML = head + action;
+    el.querySelector('[data-buy]')?.addEventListener('click', (ev) => startCheckout(BADGE, ev.currentTarget));
   }
   const subscribed = () => (S.subscriptions || []).some((s) =>
     s['capability-id'] === MONTHLY && LIVE_SUBSCRIPTION.includes(plain(s.status)));
@@ -455,6 +473,8 @@ window.addEventListener('message', (event) => {
     if (panel) renderShare(panel);
     const buy = document.querySelector('[data-gm="buy"]');
     if (buy) renderBuy(buy);
+    const badgeEl = document.querySelector('[data-gm="badge"]');
+    if (badgeEl) renderBadge(badgeEl);
   }
 
   document.addEventListener('click', (ev) => {

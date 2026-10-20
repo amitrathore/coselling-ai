@@ -282,6 +282,9 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
 .legacy-content ul, .legacy-content ol { max-width: 790px; padding-left: 24px; }
 .legacy-content li { padding: 5px 0; }
 .legacy-content a { color: var(--blue); text-underline-offset: 3px; }
+/* Link buttons keep their button colours, not the article's link blue. */
+.legacy-content a.button-primary { color: var(--navy); }
+.legacy-content a.button-dark { color: white; }
 .legacy-content img { width: auto; max-width: min(100%, 850px); max-height: 680px; margin: 42px 0; border-radius: 18px; object-fit: contain; }
 .legacy-content figure { margin: 45px 0; }
 .legacy-content blockquote { max-width: 820px; margin: 55px 0; padding: 30px 35px; border-left: 5px solid var(--yellow); background: white; color: var(--navy); font-family: Georgia, serif; font-size: 1.3rem; }
@@ -953,6 +956,8 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
 .gm-note { color: #596079; font-size: .86rem; }
 .gm-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--coral); color: var(--white); font-size: .8em; font-weight: 750; }
 .gm-note .button { margin-top: 8px; padding: 10px 16px; }
+.gm-badge-card { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.gm-badge-title { margin: 0 0 4px; color: var(--navy); font-weight: 750; }
 .gm-seat { padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,.15); }
 .gm-seat-switch { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; color: rgba(255,255,255,.7); font-size: .8rem; }
 .gm-seat-switch select { min-height: 44px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); font: inherit; font-size: .9rem; font-weight: 700; }

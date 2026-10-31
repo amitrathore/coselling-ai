@@ -1000,3 +1000,7 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
   .guide section > h2 { margin-top: 70px; }
   .guide-cta__actions, .guide-cta__actions .button { width: 100%; }
 }
+.guide-local { margin-top: 90px; padding: 30px 32px; border: 1px solid var(--line); border-left: 5px solid var(--yellow); border-radius: 22px; background: white; }
+.guide-local .eyebrow { margin-bottom: 10px; }
+.legacy-content .guide-local h2 { margin: 0 0 14px; font-size: clamp(1.9rem, 3.4vw, 2.6rem); }
+.guide-local p:last-child { margin: 0; }

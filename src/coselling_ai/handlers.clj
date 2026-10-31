@@ -498,6 +498,7 @@
   ;; The query string survives: it is how ?ref= reaches the page.
   (GET "/join" [:as request] (alias-redirect request "/pages/join/"))
   (GET "/share" [:as request] (alias-redirect request "/pages/share/"))
+  (GET "/guide" [:as request] (alias-redirect request "/pages/coseller-guide/"))
 
   ;; Anything else is a site file or the site's 404 page. Every page carries
   ;; ?ref= attribution (script.js records it), so a shared link to any of them

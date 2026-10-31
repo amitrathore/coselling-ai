@@ -101,6 +101,28 @@
         "the category the market seed registers")))
 
 
+(deftest the-coseller-guide-matches-the-economics
+  ;; The guide's "up to" figures are hand-written HTML: the coseller share is
+  ;; the listing's commission times the policy's pool share, before the card
+  ;; processing fee. A rate or policy change must update the page too.
+  (let [page (slurp "resources/site/pages/coseller-guide/index.html")
+        policy (get-in spec/game-spec [:initial-state :coseller :policy])
+        by-id (into {} (map (juxt :id identity) spec/offer-listings))
+        share-bps (fn [listing] (quot (* (:coseller-commission-bps listing) (:pool-share-bps policy)) 10000))
+        pct (fn [bps] (str "up to " (quot bps 100) "%"))
+        dollars (fn [listing] (Math/round (/ (* (get-in listing [:terms :price :amount]) (share-bps listing)) 1000000.0)))
+        setup (get by-id "launch-your-network-setup")
+        monthly (get by-id "network-platform-monthly")]
+    (is (clojure.string/includes? page (pct (share-bps setup))))
+    (is (clojure.string/includes? page (pct (share-bps monthly))))
+    (is (clojure.string/includes? page (format "Up to $%,d on a launch" (dollars setup))))
+    (is (clojure.string/includes? page (format "Up to $%d every month" (dollars monthly))))
+    (is (clojure.string/includes? page "$4,999"))
+    (is (clojure.string/includes? page "$299"))
+    (is (clojure.string/includes? page (str "keep " (- 100 (quot (:referral-override-bps policy) 100)) "%")))
+    (is (clojure.string/includes? page (str (:window-days policy) " days")))
+    (is (clojure.string/includes? page (str (:payout-hold-days policy) "-day hold")))))
+
 (deftest the-supporter-badge-is-a-one-dollar-player-entitlement
   (let [badge spec/badge-listing
         seeded (set (map :slug (get-in spec/game-spec [:market-seed :hashtags])))]

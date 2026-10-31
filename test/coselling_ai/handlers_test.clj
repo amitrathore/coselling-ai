@@ -53,7 +53,8 @@
 
 (deftest short-coseller-urls-keep-the-ref
   (is (= "/pages/share/?ref=tok-1" (get-in (GET "/share" "ref=tok-1") [:headers "Location"])))
-  (is (= "/pages/join/" (get-in (GET "/join") [:headers "Location"]))))
+  (is (= "/pages/join/" (get-in (GET "/join") [:headers "Location"])))
+  (is (= "/pages/coseller-guide/?ref=tok-1" (get-in (GET "/guide" "ref=tok-1") [:headers "Location"]))))
 
 (deftest assets-are-served-with-their-types
   (let [css (GET "/styles.css")
@@ -77,6 +78,17 @@
 (deftest every-page-links-share-and-earn
   (doseq [path (site-pages)]
     (is (str/includes? (body (GET path)) "share/\">Share &amp; Earn</a>") path)))
+
+(deftest every-page-puts-the-coseller-guide-before-share-and-earn
+  (doseq [path (site-pages)]
+    (is (re-find #"coseller-guide/\"[^>]*>Coseller Guide</a><a href=\"[^\"]*share/\">Share &amp; Earn</a>"
+                 (body (GET path)))
+        path)))
+
+(deftest the-coseller-guide-is-served
+  (let [resp (GET "/pages/coseller-guide/")]
+    (is (= 200 (:status resp)))
+    (is (str/includes? (body resp) "<h1>Coseller Guide</h1>"))))
 
 (deftest coseller-pages-carry-their-panels
   (is (str/includes? (body (GET "/pages/join/")) "data-gm=\"join\""))

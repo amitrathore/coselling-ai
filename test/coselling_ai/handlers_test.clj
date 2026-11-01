@@ -79,10 +79,12 @@
   (doseq [path (site-pages)]
     (is (str/includes? (body (GET path)) "share/\">Share &amp; Earn</a>") path)))
 
-(deftest every-page-puts-the-coseller-guide-before-share-and-earn
-  (doseq [path (site-pages)]
-    (is (re-find #"coseller-guide/\"[^>]*>Coseller Guide</a><a href=\"[^\"]*share/\">Share &amp; Earn</a>"
-                 (body (GET path)))
+(deftest every-page-links-the-coseller-guide-from-the-footer
+  (doseq [path (site-pages)
+          :let [html (body (GET path))]]
+    (is (re-find #"(?s)<footer>.*solutions/\">Solutions</a><a href=\"[^\"]*coseller-guide/\"[^>]*>Coseller Guide</a>" html)
+        path)
+    (is (not (re-find #"id=\"site-nav\"[^>]*>(?:(?!</nav>).)*Coseller Guide" html))
         path)))
 
 (deftest the-coseller-guide-is-served

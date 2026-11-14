@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>5Cs Flywheel · Coselling.ai</title>
+  <meta name="description" content="See your network's 5Cs flywheel: Content, Community, Commerce, Coselling and Campaigns, live from your game.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/images/coselling-favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header class="app-header">
+    <a class="wordmark" href="/" aria-label="Coselling.ai app home"><span class="sunmark" aria-hidden="true">✺</span><span>COSELLING</span><small>.AI</small></a>
+    <span class="app-tag">App</span>
+    <div class="app-controls" data-controls hidden>
+      <select class="app-select" id="game" aria-label="Game"></select>
+      <div class="ranges" role="group" aria-label="Time range">
+        <button type="button" data-range="7d">7d</button>
+        <button type="button" data-range="30d">30d</button>
+        <button type="button" data-range="90d">90d</button>
+        <button type="button" data-range="all">All</button>
+      </div>
+      <span class="who" data-who></span>
+      <button class="header-cta" type="button" data-signout>Sign out</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <p class="eyebrow">5Cs Flywheel</p>
+    <h1 data-title>See your network <em>compound.</em></h1>
+    <ol class="loop-line" aria-label="The loop">
+      <li>Content</li><li>Community</li><li>Commerce</li><li>Coselling</li><li>Campaigns</li>
+    </ol>
+    <p class="meta" data-meta></p>
+  </section>
+
+  <main id="main">
+    <div data-view="loading"><div class="skeleton" aria-label="Loading"></div></div>
+
+    <div class="state" data-view="signed-out" hidden>
+      <p class="eyebrow">For network operators</p>
+      <h2>Attach your game.</h2>
+      <p>Sign in with your Intergraph account and pick a game you host. You'll see each C's signal, how each one feeds the next, and the handoff that's holding the loop back.</p>
+      <div class="actions"><button class="button button-primary" type="button" data-signin>Sign in <span aria-hidden="true">→</span></button></div>
+    </div>
+
+    <div class="state" data-view="no-games" hidden>
+      <p class="eyebrow">Nothing to attach yet</p>
+      <h2>You don't host a game.</h2>
+      <p>The flywheel reads a game you host on Intergraph. If you run a network on someone else's account, ask them to make you its host. Or start one of your own.</p>
+      <div class="actions"><a class="button button-primary" href="https://coselling.ai/pages/launch-your-network/">Launch your network <span aria-hidden="true">→</span></a></div>
+    </div>
+
+    <div class="state" data-view="error" hidden>
+      <p class="eyebrow">Something's off</p>
+      <h2 data-error-title>We couldn't load that.</h2>
+      <p data-error-text></p>
+      <div class="actions"><button class="button button-primary" type="button" data-retry>Try again <span aria-hidden="true">↻</span></button></div>
+    </div>
+
+    <div data-view="board" hidden>
+      <div class="board">
+        <div>
+          <div class="wheel-wrap" data-wheel></div>
+          <ol class="loop-list" data-loop-list aria-label="The flywheel"></ol>
+        </div>
+        <div class="side">
+          <section class="insight" data-insight aria-live="polite"></section>
+          <section class="card" data-drill aria-live="polite"></section>
+        </div>
+      </div>
+      <details class="card table-card">
+        <summary>Every signal, as a table</summary>
+        <div class="table-scroll" data-table></div>
+      </details>
+    </div>
+  </main>
+
+  <footer>
+    <div class="inner">
+      <span>© coselling.ai 2026 · #coselling is #noselling</span>
+      <nav><a href="https://coselling.ai/pages/coseller-guide/">Coseller Guide</a><a href="https://coselling.ai/pages/launch-your-network/">Launch Your Network</a><a href="https://coselling.ai/">coselling.ai ↗</a></nav>
+    </div>
+  </footer>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -523,8 +523,12 @@
 
   ;; The blog: the static intro plus Attention's published posts.
   (GET "/pages/blog/" [] (blog/index-response))
-  (GET "/pages/blog/:slug/" [slug]
-    (or (blog/post-response (str/replace (str (gm-config/resolve-app-base-url)) #"/+$" "") slug)
+  ;; Social cards need absolute URLs; fall back to the request's own origin.
+  (GET "/pages/blog/:slug/" [slug :as request]
+    (or (blog/post-response (str/replace (or (gm-config/resolve-app-base-url)
+                                             (gm-identity/request-base-url request))
+                                         #"/+$" "")
+                            slug)
         (not-found-response)))
   (GET "/pages/blog/:slug" [slug :as request]
     (if (blog/find-post slug)

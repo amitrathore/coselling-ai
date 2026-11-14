@@ -36,9 +36,13 @@ own, and each approval is recorded with the statement the assistant acted on.
 - Briefing, assigning, reviewing and editing need `strategist`. Claiming and
   submitting need `creator`. Reading the task board needs either one.
 - A post needs a `title` (≤140 characters), a `summary` (≤300 characters, used
-  for the blog listing and share previews) and a Markdown `body`.
-  `featured_image` is optional and must be an `https://` URL. Raw HTML in the
-  body is shown as text.
+  for the blog listing and share previews) and a Markdown `body`. Raw HTML in
+  the body is shown as text.
+- Images follow Agents of Mind's essays. `featured_image` (optional) is the
+  post's hero, its blog-index thumbnail and its social card. Body images are
+  written `![alt text](src "caption")` on a line of their own, and render as a
+  figure with that caption. Alt text is required; the caption is optional.
+  Every image `src` must be a site path under `/assets/` or an `https://` URL.
 - Pass `idempotency_key` on every command. A retry with the same key returns the
   first result without repeating it. The same key with different content is
   refused.
@@ -62,6 +66,11 @@ own, and each approval is recorded with the statement the assistant acted on.
 > 3. Write the post, then `attention/submit-draft` with
 >    `content {title, summary, body, featured_image?, topics?}`. `body` is
 >    Markdown. Use `##` headings, short paragraphs, and no raw HTML.
+>    Images: `featured_image` is the hero and share card, a wide (16:9)
+>    image. Add one or two body images where they help, each on its own line
+>    as `![what the image shows](src "short caption")`. Use only image paths
+>    Amit has given you (site paths under `/assets/`) or `https://` URLs. Never
+>    invent an image path.
 > 4. Show Amit the full draft (title, summary and body) and the `task-id`, and
 >    ask whether to publish. Suggest a short, permanent URL slug.
 > 5. Only after Amit explicitly says yes, call `attention/review-task` with
@@ -104,3 +113,12 @@ own, and each approval is recorded with the statement the assistant acted on.
    current roles first, because the PUT replaces the whole set:
    `PUT /admin/games/coselling-ai/memberships/amit/roles`.
 4. Connect the assistant as above and run one labelled test post.
+
+## Adding images
+
+As on Agents of Mind, first-party images are committed under
+`resources/site/assets/blog/` and deployed before the post that uses them. Use
+wide JPEGs about 1600px across. The post then refers to them as
+`/assets/blog/<file>.jpg`. Hosting on the site keeps permanent post URLs and
+social cards independent of any image host. An `https://` image hosted
+elsewhere also works, but the post breaks if that host removes the file.

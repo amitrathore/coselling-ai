@@ -1019,3 +1019,12 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
 .blog-list h2 { margin: 0 0 10px; font-size: clamp(1.6rem, 2.8vw, 2.2rem); }
 .blog-list .blog-meta { margin: 0 0 10px; color: #5a6582; }
 .blog-list p { margin: 0; }
+.blog-post .blog-hero { display: block; width: 100%; max-width: 100%; max-height: none; margin: 0 0 48px; aspect-ratio: 16 / 9; object-fit: cover; }
+.blog-post figure { max-width: 850px; margin: 48px 0; }
+.blog-post figure img { display: block; margin: 0; }
+.blog-post figcaption { max-width: 780px; margin-top: 14px; color: #5a6582; font-size: .92rem; line-height: 1.55; }
+.blog-list li.has-thumb { display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: start; }
+.blog-list .blog-thumb img { width: 100%; max-height: none; margin: 0; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; }
+@media (max-width: 650px) {
+  .blog-list li.has-thumb { grid-template-columns: 1fr; gap: 16px; }
+}

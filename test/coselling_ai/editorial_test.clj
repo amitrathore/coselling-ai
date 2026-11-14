@@ -171,3 +171,43 @@
         (is (str/includes? index "/pages/welcome-to-the-coselling-blog/")))
       (is (= 404 (:status (GET "/pages/blog/no-such-post/"))))
       (finally (blog/set-feed! [])))))
+
+;; --- Images ---
+
+(def illustrated
+  {:title "The network is the market"
+   :summary "How conversations become a distribution network."
+   :featured_image "/assets/images/og-coselling-network.png"
+   :body (str "Intro.\n\n"
+              "![A globe of connected people](/assets/images/coselling-globe.jpg \"Every conversation is a storefront.\")\n\n"
+              "Middle.\n\n"
+              "![A map of influence](https://cdn.example.com/influence.jpg)\n\n"
+              "End.")})
+
+(deftest images-follow-the-essay-rules
+  (is (nil? (editorial/blog-content-error illustrated)))
+  (are [content] (some? (editorial/blog-content-error content))
+    (assoc illustrated :featured_image "http://insecure.example/a.png")
+    (assoc illustrated :featured_image "/pages/../secret.png")
+    (assoc illustrated :featured_image "images/relative.png")
+    (assoc illustrated :body "![](/assets/images/coselling-globe.jpg)")
+    (assoc illustrated :body "![ok](http://insecure.example/a.png)")
+    (assoc illustrated :body "![ok](javascript:alert(1))")))
+
+(deftest an-illustrated-post-renders-like-an-essay
+  (blog/set-feed! [{:id "p2" :slug "the-network-is-the-market" :published-at 1794700000000
+                    :byline-kind "platform" :payload illustrated}])
+  (try
+    (let [html (body (GET "/pages/blog/the-network-is-the-market/"))]
+      (testing "the featured image is the hero, and an absolute social card"
+        (is (str/includes? html "<img class=\"blog-hero\" src=\"/assets/images/og-coselling-network.png\""))
+        (is (re-find #"og:image\" content=\"https?://[^\"]+/assets/images/og-coselling-network.png\"" html)))
+      (testing "a body image on its own line is a figure; its Markdown title is the caption"
+        (is (str/includes? html (str "<figure><img src=\"/assets/images/coselling-globe.jpg\" alt=\"A globe of connected people\" loading=\"lazy\">"
+                                     "<figcaption>Every conversation is a storefront.</figcaption></figure>")))
+        (is (str/includes? html "<figure><img src=\"https://cdn.example.com/influence.jpg\" alt=\"A map of influence\" loading=\"lazy\"></figure>"))
+        (is (not (str/includes? html "<p><figure>")))))
+    (testing "the blog index shows the featured image as a thumbnail"
+      (is (str/includes? (body (GET "/pages/blog/"))
+                         "<img src=\"/assets/images/og-coselling-network.png\" alt=\"\" loading=\"lazy\">")))
+    (finally (blog/set-feed! []))))

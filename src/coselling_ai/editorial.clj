@@ -19,7 +19,8 @@
             [game.gm.authorization :as auth]
             [game.gm.config :as gm-config]
             [game.gm.identity :as gm-identity]
-            [game.protocols.attention :as attention]))
+            [game.protocols.attention :as attention]
+            [coselling-ai.blog :as blog]))
 
 ;; --- Blog post contract ---
 ;;
@@ -43,11 +44,16 @@
       (> (count title) (:title limits)) (str "Keep the title under " (:title limits) " characters.")
       (> (count summary) (:summary limits)) (str "Keep the summary under " (:summary limits) " characters.")
       (> (count body) (:body limits)) "The body is too long for one post."
-      (and (some? featured_image)
-           (not (and (string? featured_image)
-                     (re-matches #"https://[^\s\"'<>]+" featured_image))))
-      "featured_image must be an absolute https:// image URL."
-      :else nil)))
+      (and (some? featured_image) (not (blog/image-src? featured_image)))
+      "featured_image must be a site path under /assets/ or an https:// URL."
+      :else
+      (let [images (blog/body-images body)]
+        (cond
+          (some #(not (blog/image-src? (:src %))) images)
+          "Body images must use a site path under /assets/ or an https:// URL."
+          (some #(str/blank? (:alt %)) images)
+          "Every body image needs alt text: ![what the image shows](src \"optional caption\")."
+          :else nil)))))
 
 (defn- find-task [state id]
   (let [tasks (get-in state [:attention :tasks])]

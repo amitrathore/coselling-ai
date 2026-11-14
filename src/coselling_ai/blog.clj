@@ -10,10 +10,15 @@
    The chrome (header, nav, footer, script.js) is the hand-edited Welcome post's,
    with its relative links made root-relative so it works one level deeper. The
    body is Markdown, rendered with raw HTML escaped and unsafe URLs dropped:
-   posts are written by an AI assistant, so they are untrusted input."
+   posts are written by an AI assistant, so they are untrusted input.
+
+   Images follow Agents of Mind's essays: first-party files under /assets/
+   (deployed before the post that uses them) or an https URL. A body image on
+   its own line, `![alt](src \"caption\")`, becomes a <figure> with that caption."
   (:require [clojure.java.io :as io]
             [clojure.string :as str])
-  (:import (org.commonmark.parser Parser)
+  (:import (org.commonmark.node Image Node)
+           (org.commonmark.parser Parser)
            (org.commonmark.renderer.html HtmlRenderer)
            (java.time Instant ZoneId)
            (java.time.format DateTimeFormatter)
@@ -71,8 +76,51 @@
 (def ^:private markdown-renderer
   (-> (HtmlRenderer/builder) (.escapeHtml true) (.sanitizeUrls true) (.build)))
 
+;; --- Images ---
+
+(defn image-src?
+  "A first-party site path under /assets/, or an https URL."
+  [s]
+  (and (string? s)
+       (or (some? (re-matches #"/assets/[A-Za-z0-9._~/-]+" s))
+           (some? (re-matches #"https://[^\s\"'<>]+" s)))
+       (not (str/includes? s ".."))))
+
+(defn- node-seq [^Node node]
+  (lazy-seq
+   (when node
+     (cons node (concat (node-seq (.getFirstChild node)) (node-seq (.getNext node)))))))
+
+(defn body-images
+  "Every image in a Markdown body, as {:src :alt :caption}."
+  [markdown]
+  (for [node (node-seq (.parse markdown-parser (str markdown)))
+        :when (instance? Image node)
+        :let [^Image image node]]
+    {:src (.getDestination image)
+     :alt (str/join (keep #(when (instance? org.commonmark.node.Text %) (.getLiteral ^org.commonmark.node.Text %))
+                          (node-seq (.getFirstChild image))))
+     :caption (.getTitle image)}))
+
+(defn absolute-url
+  "`src` as an absolute URL: site paths resolve against `base`."
+  [base src]
+  (if (str/starts-with? src "/") (str base src) src))
+
+(defn- figures
+  "An image alone on its line renders as <p><img …></p>; make it a figure, its
+   Markdown title the caption. Safe to do on the HTML: raw HTML in the source is
+   escaped, so every <img> here was produced by the renderer."
+  [html]
+  (-> html
+      (str/replace #"<p><img src=\"([^\"]*)\" alt=\"([^\"]*)\" title=\"([^\"]*)\" /></p>"
+                   "<figure><img src=\"$1\" alt=\"$2\" loading=\"lazy\"><figcaption>$3</figcaption></figure>")
+      (str/replace #"<p><img src=\"([^\"]*)\" alt=\"([^\"]*)\" /></p>"
+                   "<figure><img src=\"$1\" alt=\"$2\" loading=\"lazy\"></figure>")
+      (str/replace #"<img (?![^>]*loading=)" "<img loading=\"lazy\" ")))
+
 (defn markdown->html [s]
-  (.render markdown-renderer (.parse markdown-parser (str s))))
+  (figures (.render markdown-renderer (.parse markdown-parser (str s)))))
 
 (def ^:private date-format
   (DateTimeFormatter/ofPattern "MMMM d, yyyy" Locale/US))
@@ -134,14 +182,14 @@
   (let [{:keys [title summary body featured_image]} (:payload post)
         date (published-date (:published-at post))]
     (page {:title title :description summary :url (post-url base (:slug post))
-           :image featured_image :type "article"}
+           :image (some->> featured_image (absolute-url base)) :type "article"}
           (str "<main id=\"content\"><header class=\"inner-hero\">"
                "<p class=\"eyebrow\"><a href=\"/pages/blog/\">Blog</a></p>"
                "<h1>" (escape title) "</h1>"
                "<p class=\"blog-meta\">" (byline post) (when date (str " · " date)) "</p>"
                "</header><article class=\"legacy-content blog-post\">"
                (when featured_image
-                 (str "<img src=\"" (escape featured_image) "\" alt=\"\">"))
+                 (str "<img class=\"blog-hero\" src=\"" (escape featured_image) "\" alt=\"\">"))
                (markdown->html body)
                "</article></main>"))))
 
@@ -152,10 +200,14 @@
    :title "Welcome to the Coselling Blog"
    :summary "Coselling.ai democratizes social commerce on the internet to help businesses, creators, communities, and publishers grow by leveraging organic conversation."})
 
-(defn- list-entry [{:keys [href title summary date]}]
-  (str "<li><a href=\"" (escape href) "\"><h2>" (escape title) "</h2></a>"
+(defn- list-entry [{:keys [href title summary date image]}]
+  (str "<li" (when image " class=\"has-thumb\"") ">"
+       (when image
+         (str "<a class=\"blog-thumb\" href=\"" (escape href) "\" tabindex=\"-1\" aria-hidden=\"true\">"
+              "<img src=\"" (escape image) "\" alt=\"\" loading=\"lazy\"></a>"))
+       "<div><a href=\"" (escape href) "\"><h2>" (escape title) "</h2></a>"
        (when date (str "<p class=\"blog-meta\">" date "</p>"))
-       "<p>" (escape summary) "</p></li>"))
+       "<p>" (escape summary) "</p></div></li>"))
 
 (defn index-section
   "The post list, inserted into the static blog page after its intro."
@@ -165,6 +217,7 @@
                          (list-entry {:href (str "/pages/blog/" (:slug post) "/")
                                       :title (get-in post [:payload :title])
                                       :summary (get-in post [:payload :summary])
+                                      :image (get-in post [:payload :featured_image])
                                       :date (published-date (:published-at post))}))
                        (posts)))
        (list-entry welcome)

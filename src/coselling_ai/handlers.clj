@@ -24,13 +24,15 @@
             [game.gm.dispatch :as gm-dispatch]
             [game.gm.identity :as gm-identity]
             [game.gm.runtime :as gm-runtime]
+            [game.protocols.uploads :as uploads]
             [game.gm.visitor :as gm-visitor]
-            [game.protocols.attention :as attention]
             [game.protocols.avatar :as avatar]
             [game.protocols.coseller :as coseller]
             [game.protocols.introspection :as introspection]
             [game.protocols.market :as market]
             [game.protocols.withdrawal :as withdrawal]
+            [coselling-ai.blog :as blog]
+            [coselling-ai.editorial :as editorial]
             [coselling-ai.marketplace :as marketplace]
             [coselling-ai.spec :as spec]))
 
@@ -104,8 +106,14 @@
 
         ;; MoM's GET /admin/games/<name>/state routes gm/query-state through the
         ;; GM; gm-lib supplies no handler, so without this that route 400s.
+        ;; Owner and MoM only: the state holds drafts, referrals and orders, and
+        ;; any seat can reach this event through MoM's MCP server.
         :query-state
-        {:handler (fn [payload] {:success true :data {:game-state (:game-state payload)}})
+        {:handler (fn [payload]
+                    (if (editorial/privileged? payload)
+                      {:success true :data {:game-state (:game-state payload)}}
+                      {:success false :status 403
+                       :error {:code "owner-required" :message "Game state is private."}}))
          :type :query
          :doc "Returns the full game-state snapshot exactly as provided in webhook context."
          :summary "Read current materialized state."
@@ -122,14 +130,18 @@
 ;; Every protocol Coselling.ai could dispatch. Only names in the spec's :protocols end
 ;; up in merged-manifest, so this may be wider than the spec — never narrower.
 ;; market and coseller are registered WHOLE: Coselling.ai settles real sales.
+;; attention is the hardened one: an AI assistant drives it through MoM's MCP
+;; server, so it requires a verified caller (`coselling-ai.editorial`).
 
 (def protocol-registry
-  {"attention"     attention/manifest
+  {"attention"     editorial/attention-manifest
    "market"        market/manifest
    "coseller"      coseller/manifest
    "withdrawal"    withdrawal/manifest
    "introspection" introspection/manifest
-   "avatar"        avatar/manifest})
+   "avatar"        avatar/manifest
+   ;; Images for blog posts, by the seats that write them.
+   "uploads"       (uploads/manifest {:roles #{:strategist :creator}})})
 
 (def merged-manifest
   (let [names   (:protocols spec/game-spec)
@@ -144,7 +156,8 @@
 (defn dispatch [payload]
   (let [event-type (:event/type payload)]
     (log! "INFO" "Event received" {:event/type event-type})
-    (let [result (gm-dispatch/dispatch-gm-handler payload merged-manifest)]
+    (let [result (editorial/handle payload merged-manifest
+                                   #(gm-dispatch/dispatch-gm-handler % merged-manifest))]
       (if (:success result)
         (log! "INFO" "Event handled"
               {:event/type event-type
@@ -206,6 +219,17 @@
                   (:state state)
                   state)]
     (overlay-state (:initial-state spec/game-spec) payload)))
+
+(defn refresh-published!
+  "Background refresh: whether MoM protects Attention, and the published feed
+   the blog serves. Runs with the GM's own credential."
+  []
+  (when-let [game-name (current-game-name)]
+    (editorial/refresh-registration! game-name)
+    (let [state (fetch-game-state {} game-name)
+          state (if (and (map? state) (contains? state :state)) (:state state) state)]
+      (when (map? state)
+        (blog/set-feed! (get-in state [:attention :feed] []))))))
 
 (defn public-game-state
   "The anonymous read model: published content and the offer catalog only.
@@ -481,6 +505,9 @@
 
   marketplace/routes
 
+  ;; Ticketed image PUTs and the public /files/<id> images they become.
+  (uploads/routes {})
+
   (GET "/ui/public-state" [:as request]
     (let [gname (current-game-name)
           gid (some-> @gm-runtime/game-id str)]
@@ -499,6 +526,20 @@
   (GET "/join" [:as request] (alias-redirect request "/pages/join/"))
   (GET "/share" [:as request] (alias-redirect request "/pages/share/"))
   (GET "/guide" [:as request] (alias-redirect request "/pages/coseller-guide/"))
+
+  ;; The blog: the static intro plus Attention's published posts.
+  (GET "/pages/blog/" [] (blog/index-response))
+  ;; Social cards need absolute URLs; fall back to the request's own origin.
+  (GET "/pages/blog/:slug/" [slug :as request]
+    (or (blog/post-response (str/replace (or (gm-config/resolve-app-base-url)
+                                             (gm-identity/request-base-url request))
+                                         #"/+$" "")
+                            slug)
+        (not-found-response)))
+  (GET "/pages/blog/:slug" [slug :as request]
+    (if (blog/find-post slug)
+      (alias-redirect request (str "/pages/blog/" slug "/"))
+      (not-found-response)))
 
   ;; Anything else is a site file or the site's 404 page. Every page carries
   ;; ?ref= attribution (script.js records it), so a shared link to any of them

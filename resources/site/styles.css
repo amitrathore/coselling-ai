@@ -1004,3 +1004,27 @@ footer { padding: 70px max(5vw, calc((100vw - var(--max)) / 2)) 28px; background
 .guide-local .eyebrow { margin-bottom: 10px; }
 .legacy-content .guide-local h2 { margin: 0 0 14px; font-size: clamp(1.9rem, 3.4vw, 2.6rem); }
 .guide-local p:last-child { margin: 0; }
+/* Blog posts from Attention (coselling-ai.blog). Markdown headings sit inside a
+   post, so they are sized for reading, not for a landing page. */
+.inner-hero .eyebrow a { color: inherit; text-decoration: none; }
+.blog-meta { margin: 18px 0 0; color: #c9d3f0; font-size: .95rem; }
+.blog-post h2 { margin: 56px 0 18px; font-size: clamp(1.9rem, 3.4vw, 2.6rem); }
+.blog-post h3 { margin: 42px 0 14px; font-size: clamp(1.4rem, 2.4vw, 1.9rem); }
+.blog-post > img:first-child { margin-top: 0; }
+.blog-post pre { max-width: 100%; overflow-x: auto; padding: 18px; border-radius: 12px; background: #f1f3fa; }
+.blog-list { min-height: 0; padding-top: 0; }
+.blog-list ul { max-width: 820px; padding: 0; list-style: none; }
+.blog-list li { padding: 34px 0; border-top: 1px solid var(--line); }
+.blog-list a { text-decoration: none; }
+.blog-list h2 { margin: 0 0 10px; font-size: clamp(1.6rem, 2.8vw, 2.2rem); }
+.blog-list .blog-meta { margin: 0 0 10px; color: #5a6582; }
+.blog-list p { margin: 0; }
+.blog-post .blog-hero { display: block; width: 100%; max-width: 100%; max-height: none; margin: 0 0 48px; aspect-ratio: 16 / 9; object-fit: cover; }
+.blog-post figure { max-width: 850px; margin: 48px 0; }
+.blog-post figure img { display: block; margin: 0; }
+.blog-post figcaption { max-width: 780px; margin-top: 14px; color: #5a6582; font-size: .92rem; line-height: 1.55; }
+.blog-list li.has-thumb { display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: start; }
+.blog-list .blog-thumb img { width: 100%; max-height: none; margin: 0; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 14px; }
+@media (max-width: 650px) {
+  .blog-list li.has-thumb { grid-template-columns: 1fr; gap: 16px; }
+}

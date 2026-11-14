@@ -118,7 +118,8 @@
 
    ;; The-js's full protocol set, verbatim. `withdrawal` because a coseller
    ;; network that cannot pay anyone out is a half-protocol.
-   :protocols ["attention" "market" "coseller" "withdrawal" "introspection" "avatar"]
+   ;; `uploads` (gm-lib) lets an assistant add images to blog posts.
+   :protocols ["attention" "market" "coseller" "withdrawal" "introspection" "avatar" "uploads"]
 
    ;; Attention holds unpublished drafts, so MoM keeps it out of public
    ;; projections. The GM refuses Attention events until MoM confirms this

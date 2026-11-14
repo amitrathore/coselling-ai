@@ -211,3 +211,16 @@
       (is (str/includes? (body (GET "/pages/blog/"))
                          "<img src=\"/assets/images/og-coselling-network.png\" alt=\"\" loading=\"lazy\">")))
     (finally (blog/set-feed! []))))
+
+(deftest an-uploaded-image-can-illustrate-a-post
+  (is (nil? (editorial/blog-content-error
+             (assoc illustrated
+                    :featured_image "/files/0b9a8c7d-1111-4222-8333-944455556666"
+                    :body "![An uploaded chart](/files/0b9a8c7d-1111-4222-8333-944455556666 \"Uploaded.\")"))))
+  (is (some? (editorial/blog-content-error
+              (assoc illustrated :featured_image "/files/not-a-uuid")))))
+
+(deftest uploads-are-advertised-to-editors-only
+  (let [caps (:uploads handlers/merged-manifest)]
+    (is (= #{:strategist :creator} (get-in caps [:prepare-image-upload :roles])))
+    (is (= {:caller :member} (get-in caps [:import-image :authorization])))))

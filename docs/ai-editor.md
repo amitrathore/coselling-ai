@@ -68,9 +68,17 @@ own, and each approval is recorded with the statement the assistant acted on.
 >    Markdown. Use `##` headings, short paragraphs, and no raw HTML.
 >    Images: `featured_image` is the hero and share card, a wide (16:9)
 >    image. Add one or two body images where they help, each on its own line
->    as `![what the image shows](src "short caption")`. Use only image paths
->    Amit has given you (site paths under `/assets/`) or `https://` URLs. Never
->    invent an image path.
+>    as `![what the image shows](src "short caption")`. Put every image on the
+>    site first and use the `url` it returns (`/files/<id>`):
+>    - If you can make an HTTP PUT: `uploads/prepare-image-upload` with the
+>      file's `size`, lowercase hex `sha256` and `content-type` (image/png,
+>      image/jpeg or image/webp). PUT the exact bytes to `signed-url` with only
+>      `required-headers`, then `uploads/complete-image-upload` with the
+>      `upload-id` and the `receipt` the PUT returned.
+>    - Otherwise: `uploads/import-image` with an `https://` link to the image.
+>    Never put a `signed-url` or receipt in a post, a task or your memory. Site
+>    paths under `/assets/` that Amit gives you also work. Never invent an image
+>    path.
 > 4. Show Amit the full draft (title, summary and body) and the `task-id`, and
 >    ask whether to publish. Suggest a short, permanent URL slug.
 > 5. Only after Amit explicitly says yes, call `attention/review-task` with
@@ -116,7 +124,13 @@ own, and each approval is recorded with the statement the assistant acted on.
 
 ## Adding images
 
-As on Agents of Mind, first-party images are committed under
+The assistant adds images itself through gm-lib's `uploads` protocol: an upload
+ticket (prepare → PUT → complete) or `uploads/import-image` for an https link.
+Images are PNG, JPEG or WebP, identified by their bytes (no SVG), at most 20 MB
+and 8192 px a side. They are stored in MoM's file store (R2), so a redeploy
+never loses them, and are served at `/files/<id>`.
+
+Images can also be committed by hand. As on Agents of Mind, those live under
 `resources/site/assets/blog/` and deployed before the post that uses them. Use
 wide JPEGs about 1600px across. The post then refers to them as
 `/assets/blog/<file>.jpg`. Hosting on the site keeps permanent post URLs and

@@ -24,6 +24,7 @@
             [game.gm.dispatch :as gm-dispatch]
             [game.gm.identity :as gm-identity]
             [game.gm.runtime :as gm-runtime]
+            [game.protocols.uploads :as uploads]
             [game.gm.visitor :as gm-visitor]
             [game.protocols.avatar :as avatar]
             [game.protocols.coseller :as coseller]
@@ -138,7 +139,9 @@
    "coseller"      coseller/manifest
    "withdrawal"    withdrawal/manifest
    "introspection" introspection/manifest
-   "avatar"        avatar/manifest})
+   "avatar"        avatar/manifest
+   ;; Images for blog posts, by the seats that write them.
+   "uploads"       (uploads/manifest {:roles #{:strategist :creator}})})
 
 (def merged-manifest
   (let [names   (:protocols spec/game-spec)
@@ -501,6 +504,9 @@
          :body (dissoc result :status)})))
 
   marketplace/routes
+
+  ;; Ticketed image PUTs and the public /files/<id> images they become.
+  (uploads/routes {})
 
   (GET "/ui/public-state" [:as request]
     (let [gname (current-game-name)

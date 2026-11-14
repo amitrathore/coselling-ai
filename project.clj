@@ -5,7 +5,7 @@
   ;; gm-lib comes from Clojars. Never `lein install` a local copy: it shadows the
   ;; published artifact and makes the build green on exactly one machine.
   :dependencies [[org.clojure/clojure "1.11.1"]
-                 [ai.intergraph/game-master "0.1.30"]
+                 [ai.intergraph/game-master "0.1.35"]
                  [clj-http "3.12.3"]
                  [cheshire "5.11.0"]
                  ;; Blog post bodies: Markdown with raw HTML escaped.

@@ -79,10 +79,12 @@
 ;; --- Images ---
 
 (defn image-src?
-  "A first-party site path under /assets/, or an https URL."
+  "A first-party site path under /assets/, an uploaded image at /files/<id>
+   (MoM's file store, via gm-lib uploads), or an https URL."
   [s]
   (and (string? s)
        (or (some? (re-matches #"/assets/[A-Za-z0-9._~/-]+" s))
+           (some? (re-matches #"/files/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}" s))
            (some? (re-matches #"https://[^\s\"'<>]+" s)))
        (not (str/includes? s ".."))))
 

@@ -5,8 +5,8 @@
             [coselling-ai.spec :as spec]
             [coselling-ai.handlers :as handlers]))
 
-(deftest same-protocols-as-the-js
-  (is (= ["attention" "market" "coseller" "withdrawal" "introspection" "avatar"]
+(deftest the-js-protocols-plus-uploads
+  (is (= ["attention" "market" "coseller" "withdrawal" "introspection" "avatar" "uploads"]
          (:protocols spec/game-spec))))
 
 (deftest every-advertised-protocol-has-handlers

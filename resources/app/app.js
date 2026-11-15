@@ -321,13 +321,89 @@
     S.game = S.games.some((g) => g['game-name'] === wanted) ? wanted : S.games[0]['game-name'];
     const wantedRange = params.get('range') || store.get('range');
     S.range = RANGES.includes(wantedRange) ? wantedRange : '30d';
-    $('#game').innerHTML = S.games.map((g) => `<option value="${esc(g['game-name'])}"${g['game-name'] === S.game ? ' selected' : ''}>${esc(g.name || g['game-name'])}</option>`).join('');
+    switcherLabel(); pushRecent(S.game);
     remember();
     await loadFlywheel();
   }
   function remember() {
     store.set('game', S.game); store.set('range', S.range);
     params.set('game', S.game); params.set('range', S.range); syncUrl();
+  }
+
+  // --- game switcher ----------------------------------------------------------
+  /* Hosts can run dozens of games, so the switcher is a filter box over the
+     list, with the games you opened last pinned on top. */
+  const RECENT_MAX = 5;
+  const gameLabel = (g) => g.name || g['game-name'];
+  function recent() {
+    try { const r = JSON.parse(store.get('recent') || '[]'); return Array.isArray(r) ? r : []; } catch (_) { return []; }
+  }
+  function pushRecent(name) {
+    store.set('recent', JSON.stringify([name, ...recent().filter((n) => n !== name)].slice(0, RECENT_MAX)));
+  }
+  function switcherLabel() {
+    const g = S.games.find((x) => x['game-name'] === S.game);
+    $('[data-game-label]').textContent = g ? gameLabel(g) : '';
+  }
+  /* Name or handle, case-insensitive; names that start with the query first. */
+  function matches(q) {
+    const n = q.trim().toLowerCase();
+    const hit = (g) => [gameLabel(g), g['game-name']].map((v) => String(v).toLowerCase());
+    return S.games
+      .map((g) => ({ g, at: Math.min(...hit(g).map((v) => { const i = v.indexOf(n); return i < 0 ? Infinity : i === 0 ? 0 : 1; })) }))
+      .filter((x) => x.at !== Infinity)
+      .sort((a, b) => a.at - b.at)
+      .map((x) => x.g);
+  }
+  const SW = { open: false, items: [], active: 0 };
+  function optionHtml(g, i) {
+    const name = g['game-name'];
+    const sub = gameLabel(g) !== name ? `<small>${esc(name)}</small>` : '';
+    return `<li role="option" id="game-opt-${i}" data-game="${esc(name)}" aria-selected="${name === S.game}"${i === SW.active ? ' class="active"' : ''}><span>${esc(gameLabel(g))}</span>${sub}</li>`;
+  }
+  function drawList() {
+    const q = $('#game-filter').value;
+    const groups = [];
+    if (q.trim()) {
+      const found = matches(q);
+      groups.push([found.length ? `${found.length} ${found.length === 1 ? 'match' : 'matches'}` : null, found]);
+    } else {
+      const pinned = recent().map((n) => S.games.find((g) => g['game-name'] === n)).filter(Boolean);
+      if (pinned.length && S.games.length > RECENT_MAX) groups.push(['Recent', pinned]);
+      groups.push([`All games (${S.games.length})`, S.games]);
+    }
+    SW.items = groups.flatMap(([, gs]) => gs);
+    SW.active = Math.min(SW.active, Math.max(0, SW.items.length - 1));
+    let i = 0;
+    $('#game-list').innerHTML = SW.items.length
+      ? groups.map(([head, gs]) => (head ? `<li class="switcher-head" role="presentation">${esc(head)}</li>` : '') + gs.map((g) => optionHtml(g, i++)).join('')).join('')
+      : `<li class="switcher-empty" role="presentation">No game matches “${esc(q.trim())}”.</li>`;
+    const input = $('#game-filter');
+    if (SW.items.length) input.setAttribute('aria-activedescendant', `game-opt-${SW.active}`);
+    else input.removeAttribute('aria-activedescendant');
+    $(`#game-opt-${SW.active}`)?.scrollIntoView({ block: 'nearest' });
+  }
+  function openSwitcher() {
+    SW.open = true; SW.active = 0;
+    $('#game').setAttribute('aria-expanded', 'true');
+    $('[data-switcher-pop]').hidden = false;
+    $('#game-filter').value = '';
+    drawList();
+    $('#game-filter').focus();
+  }
+  function closeSwitcher(refocus) {
+    if (!SW.open) return;
+    SW.open = false;
+    $('#game').setAttribute('aria-expanded', 'false');
+    $('[data-switcher-pop]').hidden = true;
+    if (refocus) $('#game').focus();
+  }
+  function chooseGame(name) {
+    closeSwitcher(true);
+    pushRecent(name);
+    if (name === S.game) return;
+    S.game = name; S.model = null; S.selected = null;
+    switcherLabel(); remember(); loadFlywheel();
   }
 
   // --- events ---------------------------------------------------------------
@@ -355,8 +431,30 @@
     const t = e.target.closest?.('[data-c]');
     if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(t.dataset.c); }
   });
-  $('#game').addEventListener('change', (e) => {
-    S.game = e.target.value; S.model = null; S.selected = null; remember(); loadFlywheel();
+  $('#game').addEventListener('click', () => (SW.open ? closeSwitcher(true) : openSwitcher()));
+  $('#game').addEventListener('keydown', (e) => {
+    if (!SW.open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); openSwitcher(); }
+  });
+  $('#game-filter').addEventListener('input', () => { SW.active = 0; drawList(); });
+  $('#game-filter').addEventListener('keydown', (e) => {
+    const n = SW.items.length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (n) { SW.active = (SW.active + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; drawList(); }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (n) chooseGame(SW.items[SW.active]['game-name']);
+    } else if (e.key === 'Escape') {
+      e.preventDefault(); closeSwitcher(true);
+    } else if (e.key === 'Tab') closeSwitcher(false);
+  });
+  $('#game-list').addEventListener('mousedown', (e) => e.preventDefault());
+  $('#game-list').addEventListener('click', (e) => {
+    const li = e.target.closest('[data-game]');
+    if (li) chooseGame(li.dataset.game);
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (SW.open && !e.target.closest('[data-switcher]')) closeSwitcher(false);
   });
   document.addEventListener('mousemove', (e) => {
     if (!S.model) return;

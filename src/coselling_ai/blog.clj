@@ -131,10 +131,25 @@
   (when (number? millis)
     (.format date-format (.atZone (Instant/ofEpochMilli (long millis)) (ZoneId/of "America/Los_Angeles")))))
 
-(defn- byline [post]
-  (if (= "guest" (str (:byline-kind post)))
-    (str "Guest post by " (escape (:author post)))
-    "Coselling.ai"))
+;; Feed items record the author's player handle; a byline shows their name.
+;; Add a new author's handle here.
+(def ^:private author-names {"amit" "Amit Rathore"})
+
+(defn- author-name [handle]
+  (let [handle (some-> handle name)]
+    (get author-names handle handle)))
+
+(defn byline
+  "The post's byline, HTML-escaped: the author's name, or the brand when a
+   staff post has no author we can name."
+  [post]
+  (let [kind (some-> (:byline-kind post) name)
+        author (author-name (:author post))]
+    (escape
+     (cond
+       (= "guest" kind) (str "Guest post by " (or author "a guest"))
+       (contains? author-names (some-> (:author post) name)) (str "By " author)
+       :else "By Coselling.ai"))))
 
 ;; --- Page chrome ---
 
@@ -200,15 +215,19 @@
 (def ^:private welcome
   {:href "/pages/welcome-to-the-coselling-blog/"
    :title "Welcome to the Coselling Blog"
+   :byline "By Coselling.ai"
    :summary "Coselling.ai democratizes social commerce on the internet to help businesses, creators, communities, and publishers grow by leveraging organic conversation."})
 
-(defn- list-entry [{:keys [href title summary date image]}]
+(defn- list-entry
+  "`byline` is already escaped; it comes from `byline` or a literal."
+  [{:keys [href title summary date image byline]}]
   (str "<li" (when image " class=\"has-thumb\"") ">"
        (when image
          (str "<a class=\"blog-thumb\" href=\"" (escape href) "\" tabindex=\"-1\" aria-hidden=\"true\">"
               "<img src=\"" (escape image) "\" alt=\"\" loading=\"lazy\"></a>"))
        "<div><a href=\"" (escape href) "\"><h2>" (escape title) "</h2></a>"
-       (when date (str "<p class=\"blog-meta\">" date "</p>"))
+       (when (or byline date)
+         (str "<p class=\"blog-meta\">" (str/join " · " (remove nil? [byline date])) "</p>"))
        "<p>" (escape summary) "</p></div></li>"))
 
 (defn index-section
@@ -220,6 +239,7 @@
                                       :title (get-in post [:payload :title])
                                       :summary (get-in post [:payload :summary])
                                       :image (get-in post [:payload :featured_image])
+                                      :byline (byline post)
                                       :date (published-date (:published-at post))}))
                        (posts)))
        (list-entry welcome)

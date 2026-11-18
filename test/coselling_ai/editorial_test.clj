@@ -172,6 +172,27 @@
       (is (= 404 (:status (GET "/pages/blog/no-such-post/"))))
       (finally (blog/set-feed! [])))))
 
+(deftest every-post-has-a-byline
+  (blog/set-feed! [{:id "b1" :slug "by-amit" :author "amit" :byline-kind "platform"
+                    :published-at 1794700000000 :payload post-content}
+                   {:id "b2" :slug "by-the-brand" :author "ghost-writer" :byline-kind "platform"
+                    :published-at 1794600000000 :payload post-content}
+                   {:id "b3" :slug "by-a-guest" :author "<jane>" :byline-kind :guest
+                    :published-at 1794500000000 :payload post-content}])
+  (try
+    (testing "a post page names its author"
+      (is (str/includes? (body (GET "/pages/blog/by-amit/")) "<p class=\"blog-meta\">By Amit Rathore · "))
+      (is (str/includes? (body (GET "/pages/blog/by-the-brand/")) "<p class=\"blog-meta\">By Coselling.ai · "))
+      (let [html (body (GET "/pages/blog/by-a-guest/"))]
+        (is (str/includes? html "<p class=\"blog-meta\">Guest post by &lt;jane&gt; · "))
+        (is (not (str/includes? html "<jane>")))))
+    (testing "the index shows each byline, the Welcome post's included"
+      (let [index (body (GET "/pages/blog/"))]
+        (is (str/includes? index "By Amit Rathore · "))
+        (is (str/includes? index "Guest post by &lt;jane&gt; · "))
+        (is (str/includes? index "<p class=\"blog-meta\">By Coselling.ai</p>"))))
+    (finally (blog/set-feed! []))))
+
 ;; --- Images ---
 
 (def illustrated

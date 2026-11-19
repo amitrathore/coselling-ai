@@ -7,7 +7,7 @@
    MoM. A post shows up within one refresh of being approved, and nothing is
    deployed to publish one.
 
-   The chrome (header, nav, footer, script.js) is the hand-edited Welcome post's,
+   The chrome (header, nav, footer, script.js) is the static blog index's,
    with its relative links made root-relative so it works one level deeper. The
    body is Markdown, rendered with raw HTML escaped and unsafe URLs dropped:
    posts are written by an AI assistant, so they are untrusted input.
@@ -154,7 +154,7 @@
 ;; --- Page chrome ---
 
 (defn- template []
-  (-> (slurp (io/resource "site/pages/welcome-to-the-coselling-blog/index.html"))
+  (-> (slurp (io/resource "site/pages/blog/index.html"))
       (str/replace "\"../../" "\"/")))
 
 (defn- page
@@ -210,16 +210,8 @@
                (markdown->html body)
                "</article></main>"))))
 
-;; The Welcome post predates Attention; it stays a hand-edited page and is
-;; listed as the oldest entry.
-(def ^:private welcome
-  {:href "/pages/welcome-to-the-coselling-blog/"
-   :title "Welcome to the Coselling Blog"
-   :byline "By Coselling.ai"
-   :summary "Coselling.ai democratizes social commerce on the internet to help businesses, creators, communities, and publishers grow by leveraging organic conversation."})
-
 (defn- list-entry
-  "`byline` is already escaped; it comes from `byline` or a literal."
+  "`byline` is already escaped; it comes from `byline`."
   [{:keys [href title summary date image byline]}]
   (str "<li" (when image " class=\"has-thumb\"") ">"
        (when image
@@ -242,7 +234,6 @@
                                       :byline (byline post)
                                       :date (published-date (:published-at post))}))
                        (posts)))
-       (list-entry welcome)
        "</ul></section>"))
 
 (defn index-page []

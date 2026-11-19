@@ -168,9 +168,16 @@
         (is (= 302 (:status (GET "/pages/blog/why-we-pay-for-outcomes")))))
       (let [index (body (GET "/pages/blog/"))]
         (is (str/includes? index "href=\"/pages/blog/why-we-pay-for-outcomes/\""))
-        (is (str/includes? index "/pages/welcome-to-the-coselling-blog/")))
+        (is (not (str/includes? index "welcome-to-the-coselling-blog"))))
       (is (= 404 (:status (GET "/pages/blog/no-such-post/"))))
       (finally (blog/set-feed! [])))))
+
+(deftest the-retired-welcome-post-redirects-to-the-blog
+  (doseq [uri ["/pages/welcome-to-the-coselling-blog/" "/pages/welcome-to-the-coselling-blog"]]
+    (let [resp (handlers/app {:request-method :get :uri uri :query-string "ref=amit"
+                              :scheme :https :headers {"host" "coselling.example"}})]
+      (is (= 301 (:status resp)))
+      (is (= "/pages/blog/?ref=amit" (get-in resp [:headers "Location"]))))))
 
 (deftest every-post-has-a-byline
   (blog/set-feed! [{:id "b1" :slug "by-amit" :author "amit" :byline-kind "platform"
@@ -186,11 +193,11 @@
       (let [html (body (GET "/pages/blog/by-a-guest/"))]
         (is (str/includes? html "<p class=\"blog-meta\">Guest post by &lt;jane&gt; · "))
         (is (not (str/includes? html "<jane>")))))
-    (testing "the index shows each byline, the Welcome post's included"
+    (testing "the index shows each byline"
       (let [index (body (GET "/pages/blog/"))]
         (is (str/includes? index "By Amit Rathore · "))
         (is (str/includes? index "Guest post by &lt;jane&gt; · "))
-        (is (str/includes? index "<p class=\"blog-meta\">By Coselling.ai</p>"))))
+        (is (str/includes? index "By Coselling.ai · "))))
     (finally (blog/set-feed! []))))
 
 ;; --- Images ---

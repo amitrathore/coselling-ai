@@ -529,6 +529,11 @@
   (GET "/guide" [:as request] (alias-redirect request "/pages/coseller-guide/"))
 
   ;; The blog: the static intro plus Attention's published posts.
+  ;; The hand-written Welcome post was retired; old links land on the blog.
+  (GET "/pages/welcome-to-the-coselling-blog/" [:as request]
+    (assoc (alias-redirect request "/pages/blog/") :status 301))
+  (GET "/pages/welcome-to-the-coselling-blog" [:as request]
+    (assoc (alias-redirect request "/pages/blog/") :status 301))
   (GET "/pages/blog/" [] (blog/index-response))
   ;; Social cards need absolute URLs; fall back to the request's own origin.
   (GET "/pages/blog/:slug/" [slug :as request]

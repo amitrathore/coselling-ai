@@ -168,7 +168,9 @@
         (is (= 302 (:status (GET "/pages/blog/why-we-pay-for-outcomes")))))
       (let [index (body (GET "/pages/blog/"))]
         (is (str/includes? index "href=\"/pages/blog/why-we-pay-for-outcomes/\""))
-        (is (not (str/includes? index "welcome-to-the-coselling-blog"))))
+        (is (not (str/includes? index "welcome-to-the-coselling-blog")))
+        (is (str/includes? index "<p class=\"blog-lede\">"))
+        (is (not (str/includes? index "A borderless world economy"))))
       (is (= 404 (:status (GET "/pages/blog/no-such-post/"))))
       (finally (blog/set-feed! [])))))
 

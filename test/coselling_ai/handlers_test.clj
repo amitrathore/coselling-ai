@@ -79,6 +79,11 @@
   (doseq [path (site-pages)]
     (is (str/includes? (body (GET path)) "share/\">Share &amp; Earn</a>") path)))
 
+(deftest every-page-links-the-blog-from-the-nav
+  (doseq [path (site-pages)]
+    (is (re-find #"id=\"site-nav\"[^>]*>(?:(?!</nav>).)*blog/\">Blog</a>" (body (GET path)))
+        path)))
+
 (deftest every-page-links-the-coseller-guide-from-the-footer
   (doseq [path (site-pages)
           :let [html (body (GET path))]]

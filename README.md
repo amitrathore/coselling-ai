@@ -40,6 +40,12 @@ scripts/run-local.sh   # http://localhost:8894
 lein test
 ```
 
+## Dashboard access
+
+At [app.coselling.ai](https://app.coselling.ai), a game host can open **Dashboard access**, enable operations, and assign the `coselling-operator` player role to an existing seat. The player signs in with the Intergraph account that owns that seat. The dashboard shows aggregate flywheel metrics and actions that the GM authorizes for the seat's existing roles. Turning operations off suspends dashboard access for assigned seats until the host enables operations again.
+
+Deploy the matching MoM changes to the `/api/v1/dashboard/games` endpoints before deploying this app. After both deployments, use the Coselling.ai game to verify grant, action, and revoke from separate host and player accounts.
+
 ## Deployment
 
 The GM runs on Fly.io as the app `coselling-ai` (`fly.toml`). flyctl authenticates with an app-scoped deploy token in `.envrc` (gitignored, loaded by direnv):

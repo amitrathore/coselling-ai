@@ -34,7 +34,7 @@
     (try
       (let [method (:request-method request :get)
             send (case method :get http/get :post http/post :put http/put)
-            options (cond-> {:as :json :throw-exceptions false
+            options (cond-> {:as :json :coerce :always :throw-exceptions false
                              :socket-timeout 15000 :conn-timeout 5000}
                       query (assoc :query-params query)
                       (not= :get method) (assoc :content-type :json

@@ -215,3 +215,23 @@ footer nav { display: flex; flex-wrap: wrap; gap: 8px 22px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.operator-card { margin-top: 18px; }
+.operator-card summary { font-weight: 700; cursor: pointer; }
+.operator-card form { display: grid; gap: 12px; margin-top: 14px; }
+.operator-card form p:empty, .operator-card p[role="status"]:empty { display: none; }
+.operator-card label { display: grid; gap: 6px; font-weight: 650; }
+.operator-card .access-toggle { display: flex; align-items: center; padding: 8px 0; }
+.operator-card small { font-weight: 400; }
+.operator-card select, .operator-card textarea {
+  width: min(100%, 48rem);
+  padding: 8px;
+  color: var(--navy);
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.operator-card textarea, .operator-card pre { font: .86rem/1.5 ui-monospace, monospace; }
+.operator-card pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.operator-card button { justify-self: start; }
+.operator-card button:disabled { opacity: .55; cursor: default; }

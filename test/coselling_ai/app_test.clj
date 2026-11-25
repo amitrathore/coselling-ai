@@ -7,10 +7,12 @@
             [coselling-ai.app :as app]
             [coselling-ai.handlers :as handlers]))
 
-(defn- req [host uri & {:keys [query-string token]}]
-  (let [resp (handlers/app {:request-method :get :uri uri :query-string query-string :scheme :https
+(defn- req [host uri & {:keys [query-string token method input] :or {method :get}}]
+  (let [resp (handlers/app {:request-method method :uri uri :query-string query-string :scheme :https
+                            :body (when input (java.io.ByteArrayInputStream. (.getBytes (json/generate-string input) "UTF-8")))
                             :headers (cond-> {"host" host}
-                                       token (assoc "authorization" (str "Bearer " token)))})]
+                                       token (assoc "authorization" (str "Bearer " token))
+                                       input (assoc "content-type" "application/json"))})]
     ;; JSON comes back encoded by wrap-json-response; decode it for the asserts.
     (if (and (string? (:body resp))
              (some-> (get-in resp [:headers "Content-Type"]) (str/includes? "json")))
@@ -50,7 +52,7 @@
                                 [:headers "Location"]))
         "the site's own redirect is unchanged")))
 
-(deftest owned-games-are-read-as-the-caller
+(deftest dashboard-games-are-read-as-the-caller
   (let [calls (atom [])]
     (with-redefs [http/get (fn [url opts]
                              (swap! calls conj [url (get-in opts [:headers "Authorization"])])
@@ -63,7 +65,7 @@
         (is (= ["alpha" "zeta"] (map :game-name games)) "sorted by name")
         (is (not-any? :host-secret games) "only the fields the picker needs")
         (is (= 1 (count @calls)) "the stub was actually called")
-        (is (str/ends-with? (ffirst @calls) "/api/v1/orgchief/owned-games"))
+        (is (str/ends-with? (ffirst @calls) "/api/v1/dashboard/games"))
         (is (= "Bearer tok-op" (second (first @calls))) "the operator's own token, not the GM's")))))
 
 (deftest signed-out-callers-never-reach-mom
@@ -73,32 +75,39 @@
       (is (= 401 (:status (req "app.coselling.example" "/api/app/games/the-js/flywheel"))))
       (is (false? @called)))))
 
-(deftest the-flywheel-is-the-hosts-alone
-  (let [urls (atom [])]
-    (with-redefs [http/get (fn [url _]
-                             (swap! urls conj url)
-                             (if (str/includes? url "/games/not-mine/")
-                               {:status 403 :body {:error "forbidden"}}
-                               {:status 200
-                                :body {:game {:name "Mine" :game-name "mine" :protocols ["attention" "market" "coseller"]}
-                                       :state {} :participants [{:player-name "ari"}]}}))]
-      (let [denied (req "app.coselling.example" "/api/app/games/not-mine/flywheel" :token "tok-a")]
-        (is (= 403 (:status denied)))
-        (is (= "not-host" (get-in denied [:body :error]))))
-      (let [ok (req "app.coselling.example" "/api/app/games/mine/flywheel"
-                    :query-string "range=7d" :token "tok-b")]
-        (is (= 200 (:status ok)))
-        (is (= "7d" (get-in ok [:body :range])))
-        (is (= ["content" "community" "commerce" "coselling" "campaigns"] (map :id (get-in ok [:body :cs])))))
-      (is (some #(str/ends-with? % "/api/v1/games/mine/orgchief/snapshot") @urls))
-      (testing "a second read within the cache window doesn't go back to MoM"
-        (let [n (count @urls)]
-          (req "app.coselling.example" "/api/app/games/mine/flywheel" :query-string "range=90d" :token "tok-b")
-          (is (= n (count @urls)))))
-      (testing "another operator's token never gets the cached read"
-        (let [n (count @urls)]
-          (req "app.coselling.example" "/api/app/games/mine/flywheel" :token "tok-c")
-          (is (= (inc n) (count @urls))))))))
+(deftest the-flywheel-rechecks-access-on-every-request
+  (let [calls (atom [])
+        allowed? (atom true)]
+    (with-redefs [http/get (fn [url opts]
+                            (swap! calls conj [url (:query-params opts)])
+                            (if @allowed?
+                              {:status 200 :body {:range "7d" :game {:name "Delegated"} :cs []}}
+                              {:status 403 :body {:error "access-required"}}))]
+      (let [uri "/api/app/games/delegated/flywheel"
+            request #(req "app.coselling.example" uri :query-string "range=7d" :token "operator")]
+        (is (= "7d" (get-in (request) [:body :range])))
+        (reset! allowed? false)
+        (is (= 403 (:status (request))))
+        (is (= 2 (count @calls)))
+        (is (str/ends-with? (ffirst @calls) "/api/v1/dashboard/games/delegated/flywheel"))
+        (is (= {:range "7d"} (second (first @calls))))))))
+
+(deftest mutations-forward-only-the-signed-in-users-credential
+  (let [calls (atom [])
+        capture (fn [url opts]
+                  (swap! calls conj [url (get-in opts [:headers "Authorization"])
+                                     (json/parse-string (:body opts) true)])
+                  {:status 200 :body {:success true}})
+        base "/api/app/games/sample/"]
+    (with-redefs [http/put capture http/post capture]
+      (is (= 401 (:status (req "app.coselling.example" (str base "access")
+                               :method :put :input {:enabled true}))))
+      (is (= 200 (:status (req "app.coselling.example" (str base "access")
+                               :method :put :input {:enabled true} :token "host"))))
+      (is (= 200 (:status (req "app.coselling.example" (str base "actions")
+                               :method :post :input {:seat "seat" :data {}} :token "operator"))))
+      (is (= [["Bearer host" {:enabled true}] ["Bearer operator" {:seat "seat" :data {}}]]
+             (mapv #(subvec % 1) @calls))))))
 
 (deftest game-names-are-checked-before-they-reach-a-url
   (is (= 400 (:status (app/flywheel-response

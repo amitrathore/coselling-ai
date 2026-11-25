@@ -1,32 +1,12 @@
 (ns coselling-ai.app
-  "app.coselling.ai — the operator app, served by this GM on its own host.
-
-   An operator signs in with Intergraph Login, picks a game they HOST, and sees
-   its 5Cs flywheel (`coselling-ai.flywheel`). Any Intergraph game, not just
-   this one: the data comes from MoM's host-scoped read, never from this GM's
-   own credential.
-
-   - GET /api/app/games            → MoM /api/v1/orgchief/owned-games
-   - GET /api/app/games/:g/flywheel → MoM /api/v1/games/<g>/orgchief/snapshot,
-                                      run through `flywheel/model`
-
-   Both forward the CALLER's token, so MoM decides who hosts what: a 403 from
-   the snapshot means \"you don't host this game\" and is passed through as
-   that. MoM's /admin/* reads are deliberately not used — they don't check
-   hosting.
-
-   Sign-in is the site's own flow (gm-lib identity), pointed back at this host:
-   browser storage is per origin, so the app holds its own session."
+  "Dashboard routes that forward the signed-in human’s Intergraph credential to MoM."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [compojure.core :refer [routes GET POST OPTIONS]]
+            [compojure.core :refer [routes GET POST PUT OPTIONS]]
+            [cheshire.core :as json]
             [clj-http.client :as http]
             [ring.util.codec :as codec]
-            [game.gm.identity :as gm-identity]
-            [coselling-ai.flywheel :as flywheel]))
-
-(defn- log! [level msg & [data]]
-  (println (str " [" level "] " msg) (if data (pr-str data) "")))
+            [game.gm.identity :as gm-identity]))
 
 ;; --- which host is the app --------------------------------------------------
 
@@ -41,78 +21,55 @@
 (defn request-host [request]
   (get-in request [:headers "host"]))
 
-;; --- MoM reads, as the caller -----------------------------------------------
-
-(defn- mom-get [request path]
-  (http/get (str (gm-identity/mom-url nil) path)
-            (gm-identity/request-user-auth
-             request {:as :json :throw-exceptions false
-                      :socket-timeout 15000 :connection-timeout 5000})))
-
-(def ^:private cache-ttl-ms 30000)
-(defonce ^:private snapshot-cache (atom {}))
-
-(defn- cache-key [request game-name]
-  ;; Keyed by the caller's token, so one operator's read is never served to
-  ;; another. Hashed: no bearer tokens sitting in a map.
-  [(hash (gm-identity/auth-header (:headers request))) game-name])
-
-(defn- fetch-snapshot
-  "{:status :body}: MoM's snapshot for a game the caller hosts, cached briefly
-   per caller so flipping ranges doesn't re-read the whole game."
-  [request game-name now]
-  (let [k (cache-key request game-name)
-        hit (get @snapshot-cache k)]
-    (if (and hit (< (- now (:at hit)) cache-ttl-ms))
-      (:resp hit)
-      (let [resp (mom-get request (str "/api/v1/games/" game-name "/orgchief/snapshot"))
-            out {:status (:status resp) :body (:body resp)}]
-        (when (= 200 (:status resp))
-          (swap! snapshot-cache
-                 (fn [c] (-> (into {} (filter #(< (- now (:at (val %))) cache-ttl-ms)) c)
-                             (assoc k {:at now :resp out})))))
-        out))))
-
 (defn- error [status code message]
-  {:status status :body {:error code :message message}})
+  {:status status :headers {"Cache-Control" "no-store"}
+   :body {:error code :message message}})
 
-(defn- signed-in? [request]
-  (some? (gm-identity/auth-header (:headers request))))
+(defn- unavailable []
+  (error 502 "mom-unavailable" "Couldn't reach Intergraph. Try again in a moment."))
+
+(defn- mom-response [request path query]
+  (if-not (gm-identity/auth-header (:headers request))
+    (error 401 "sign-in-required" "Sign in to open the dashboard.")
+    (try
+      (let [method (:request-method request :get)
+            send (case method :get http/get :post http/post :put http/put)
+            options (cond-> {:as :json :throw-exceptions false
+                             :socket-timeout 15000 :conn-timeout 5000}
+                      query (assoc :query-params query)
+                      (not= :get method) (assoc :content-type :json
+                                                 :body (json/generate-string (:body request))))
+            {:keys [status body]} (send (str (gm-identity/mom-url nil) path)
+                                        (gm-identity/request-user-auth request options))]
+        (if (map? body)
+          {:status status :headers {"Cache-Control" "no-store"} :body body}
+          (unavailable)))
+      (catch java.io.IOException _ (unavailable))
+      (catch clojure.lang.ExceptionInfo ex
+        (if (:status (ex-data ex))
+          (unavailable)
+          (throw ex))))))
 
 (defn games-response [request]
-  (if-not (signed-in? request)
-    (error 401 "sign-in-required" "Sign in to see the games you host.")
-    (let [resp (mom-get request "/api/v1/orgchief/owned-games")]
-      (case (:status resp)
-        200 {:status 200
-             :body {:games (->> (get-in resp [:body :games])
-                                (mapv #(select-keys % [:id :game-name :name :description :protocols]))
-                                (sort-by (comp str/lower-case str :name))
-                                vec)}}
-        (401 403) (error 401 "sign-in-required" "Your sign-in has expired. Sign in again.")
-        (do (log! "WARN" "owned-games failed" {:status (:status resp)})
-            (error 502 "mom-unavailable" "Couldn't reach Intergraph. Try again in a moment."))))))
+  (let [response (mom-response request "/api/v1/dashboard/games" nil)]
+    (if (= 200 (:status response))
+      (update-in response [:body :games]
+                 (fn [games]
+                   (->> games
+                        (map #(select-keys % [:id :game-name :name :description :protocols :host]))
+                        (sort-by (comp str/lower-case str :name))
+                        vec)))
+      response)))
 
 (def ^:private game-name-pattern #"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}")
 
+(defn- game-response [request game-name resource query]
+  (if (re-matches game-name-pattern (str game-name))
+    (mom-response request (str "/api/v1/dashboard/games/" game-name "/" resource) query)
+    (error 400 "bad-game" "That isn't a game name.")))
+
 (defn flywheel-response [request game-name range-key]
-  (cond
-    (not (signed-in? request))
-    (error 401 "sign-in-required" "Sign in to see the games you host.")
-
-    (not (re-matches game-name-pattern (str game-name)))
-    (error 400 "bad-game" "That isn't a game name.")
-
-    :else
-    (let [now (System/currentTimeMillis)
-          {:keys [status body]} (fetch-snapshot request game-name now)]
-      (case status
-        200 {:status 200 :body (flywheel/model body now (or range-key flywheel/default-range))}
-        401 (error 401 "sign-in-required" "Your sign-in has expired. Sign in again.")
-        403 (error 403 "not-host" "Only the game's host can see its flywheel.")
-        404 (error 404 "no-such-game" "There's no game by that name.")
-        (do (log! "WARN" "snapshot failed" {:game game-name :status status})
-            (error 502 "mom-unavailable" "Couldn't reach Intergraph. Try again in a moment."))))))
+  (game-response request game-name "flywheel" (when range-key {:range range-key})))
 
 ;; No wrap-params in this GM's stack; the app reads its one query param itself.
 (defn- query-param [request k]
@@ -157,6 +114,16 @@
      (GET "/api/app/games" [:as request] (games-response request))
      (GET "/api/app/games/:game-name/flywheel" [game-name :as request]
        (flywheel-response request game-name (query-param request "range")))
+
+     (GET "/api/app/games/:game-name/access" [game-name :as request]
+       (game-response request game-name "access" nil))
+     (PUT "/api/app/games/:game-name/access" [game-name :as request]
+       (game-response request game-name "access" nil))
+     (GET "/api/app/games/:game-name/actions" [game-name :as request]
+       (game-response request game-name "actions" (when-let [seat (query-param request "seat")]
+                                                  {:seat seat})))
+     (POST "/api/app/games/:game-name/actions" [game-name :as request]
+       (game-response request game-name "actions" nil))
 
      (GET "/assets/*" [:as request] (site-asset request))
      (GET "/" [] (file-response "/"))

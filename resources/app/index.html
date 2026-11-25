@@ -47,14 +47,14 @@
     <div class="state" data-view="signed-out" hidden>
       <p class="eyebrow">For network operators</p>
       <h2>Attach your game.</h2>
-      <p>Sign in with your Intergraph account and pick a game you host. You'll see each C's signal, how each one feeds the next, and the handoff that's holding the loop back.</p>
+      <p>Sign in with your Intergraph account and pick a game you host or operate. You'll see each C's signal, how each one feeds the next, and the handoff that's holding the loop back.</p>
       <div class="actions"><button class="button button-primary" type="button" data-signin>Sign in <span aria-hidden="true">→</span></button></div>
     </div>
 
     <div class="state" data-view="no-games" hidden>
       <p class="eyebrow">Nothing to attach yet</p>
-      <h2>You don't host a game.</h2>
-      <p>The flywheel reads a game you host on Intergraph. If you run a network on someone else's account, ask them to make you its host. Or start one of your own.</p>
+      <h2>You don't have dashboard access yet.</h2>
+      <p>Ask the game's host to grant your player seat Dashboard Operator access, or launch a game of your own.</p>
       <div class="actions"><a class="button button-primary" href="https://coselling.ai/pages/launch-your-network/">Launch your network <span aria-hidden="true">→</span></a></div>
     </div>
 
@@ -76,6 +76,28 @@
           <section class="card" data-drill aria-live="polite"></section>
         </div>
       </div>
+      <section class="card operator-card" data-operator hidden aria-labelledby="operator-title">
+        <h2 id="operator-title">Actions</h2>
+        <p data-operator-status role="status"></p>
+        <label data-seat-label hidden>Player seat <select data-seat></select></label>
+        <form data-action-form hidden>
+          <label>Action <select data-action required></select></label>
+          <p data-action-doc></p>
+          <label>Action input (JSON) <textarea data-action-input rows="5" spellcheck="false"></textarea></label>
+          <details data-action-schema hidden>
+            <summary>Input schema</summary>
+            <pre></pre>
+          </details>
+          <button class="header-cta" type="submit" data-action-run>Run action</button>
+        </form>
+        <pre data-action-result aria-live="polite" hidden></pre>
+      </section>
+      <details class="card operator-card" data-access hidden>
+        <summary>Dashboard access</summary>
+        <label class="access-toggle"><input type="checkbox" data-access-enabled> Enable dashboard operations</label>
+        <p data-access-status role="status"></p>
+        <div data-access-seats></div>
+      </details>
       <details class="card table-card">
         <summary>Every signal, as a table</summary>
         <div class="table-scroll" data-table></div>

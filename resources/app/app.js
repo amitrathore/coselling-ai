@@ -1,5 +1,4 @@
-/* app.coselling.ai — the 5Cs flywheel for a game you host.
-   The GM does the maths (coselling-ai.flywheel); this file draws it. */
+/* app.coselling.ai — the 5Cs flywheel and actions for a game you host or operate. */
 (() => {
   const KEY = (k) => `coselling.app.${k}`;
   const store = {
@@ -35,9 +34,14 @@
     history.replaceState({}, '', location.pathname + (q ? '?' + q : ''));
   }
 
-  async function api(url) {
+  async function api(url, method = 'GET', input) {
+    const options = { method, cache: 'no-store', headers: auth() };
+    if (input !== undefined) {
+      options.headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(input);
+    }
     let r;
-    try { r = await fetch(url, { headers: auth() }); } catch (_) {
+    try { r = await fetch(url, options); } catch (_) {
       return { ok: false, status: 0, body: { message: "Couldn't reach the app. Check your connection." } };
     }
     let body = null;
@@ -203,6 +207,7 @@
   }
 
   function extras(c) {
+    if (!S.games.find((game) => game['game-name'] === S.game)?.host) return '';
     const m = S.model;
     switch (c.id) {
       case 'content': {
@@ -290,16 +295,19 @@
   }
 
   // --- loading ----------------------------------------------------------------
+  let flywheelRequest = 0;
   async function loadFlywheel() {
     if (!S.game) return;
+    const request = ++flywheelRequest;
     $$('.ranges button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.range === S.range)));
     if (!S.model) show('loading');
     const r = await api(`/api/app/games/${encodeURIComponent(S.game)}/flywheel?range=${encodeURIComponent(S.range)}`);
+    if (request !== flywheelRequest) return;
     if (r.status === 401) { store.drop('token'); return boot(); }
     if (!r.ok) {
       S.model = null;
       setHero(S.games.find((g) => g['game-name'] === S.game)?.name, '');
-      return showError(r.status === 403 ? "That game isn't yours." : "We couldn't load the flywheel.", r.body?.message);
+      return showError(r.status === 403 ? "Dashboard access is required." : "We couldn't load the flywheel.", r.body?.message);
     }
     S.model = r.body;
     render();
@@ -323,12 +331,165 @@
     S.range = RANGES.includes(wantedRange) ? wantedRange : '30d';
     switcherLabel(); pushRecent(S.game);
     remember();
-    await loadFlywheel();
+    await Promise.all([loadFlywheel(), loadOperatorPanels()]);
   }
   function remember() {
     store.set('game', S.game); store.set('range', S.range);
     params.set('game', S.game); params.set('range', S.range); syncUrl();
   }
+
+  let operator;
+  const gameResource = (game, resource) => `/api/app/games/${encodeURIComponent(game)}/${resource}`;
+  const operatorStatus = (text) => { $('[data-operator-status]').textContent = text; };
+
+  function drawAction(context) {
+    const action = context.actions.find((item) => item['event-type'] === $('[data-action]').value);
+    const schema = action?.['event-data-schema'];
+    $('[data-action-doc]').textContent = action?.summary || action?.doc || '';
+    const example = { ...(action?.['example-valid']?.['event/data'] || {}) };
+    if (Object.hasOwn(example, 'player-name')) {
+      example['player-name'] = context.seats.find((seat) => seat.id === context.seat)?.['player-name'];
+    }
+    if (Object.hasOwn(example, 'player-id')) example['player-id'] = context.seat;
+    delete example.roles;
+    $('[data-action-input]').value = JSON.stringify(example, null, 2);
+    $('[data-action-schema]').hidden = !schema;
+    $('[data-action-schema] pre').textContent = schema ? JSON.stringify(schema, null, 2) : '';
+    $('[data-action-result]').hidden = true;
+    $('[data-action-run]').disabled = !action || context.pending;
+  }
+
+  async function loadActions(context, seat) {
+    const panel = $('[data-operator]');
+    const request = ++context.discovery;
+    const result = await api(gameResource(context.game, 'actions') + (seat ? `?seat=${encodeURIComponent(seat)}` : ''));
+    if (context !== operator || request !== context.discovery) return;
+    panel.hidden = result.ok && !result.body.enabled;
+    if (!result.ok) {
+      operatorStatus(result.body?.message || 'Actions are unavailable.');
+      return;
+    }
+    const { seats, actions } = result.body;
+    context.actions = actions;
+    context.seat = result.body.seat;
+    context.seats = seats;
+    $('[data-seat-label]').hidden = seats.length < 2;
+    $('[data-seat]').innerHTML = (context.seat ? '' : '<option value="">Select a player seat</option>') +
+      seats.map((s) => `<option value="${esc(s.id)}">${esc(s['player-name'])}</option>`).join('');
+    $('[data-seat]').value = context.seat || '';
+    $('[data-action-form]').hidden = !actions.length;
+    $('[data-action]').disabled = false;
+    $('[data-seat]').disabled = false;
+    $('[data-action]').innerHTML = '<option value="">Select an action</option>' +
+      actions.map((a) => `<option value="${esc(a['event-type'])}">${esc(a['event-type'])}</option>`).join('');
+    operatorStatus(!seats.length ? 'You need a player seat in this game to run actions.' :
+      !context.seat ? 'Choose the player seat to act as.' :
+      !actions.length ? 'This seat has no compatible actions.' : '');
+    drawAction(context);
+  }
+
+  function drawAccess(context, result) {
+    if (context !== operator) return;
+    $('[data-access]').hidden = false;
+    if (result.ok) context.access = result.body;
+    $('[data-access-status]').textContent = result.ok ? '' : result.body?.message || 'Dashboard access is unavailable.';
+    $('[data-access-enabled]').checked = Boolean(context.access?.enabled);
+    $('[data-access-enabled]').disabled = !context.access;
+    $('[data-access-seats]').innerHTML = context.access?.enabled
+      ? '<p>Grant the Dashboard Operator role to a player seat. Turning off operations suspends access for operator seats.</p>' + (context.access.seats.length
+        ? context.access.seats.map((s) => `<label class="access-toggle"><input type="checkbox" data-grant="${esc(s.id)}" ${s.operator ? 'checked' : ''}> <span>${esc(s['player-name'])} <small>${esc(s.roles.join(', '))}</small></span></label>`).join('')
+        : '<p>This game has no player seats to grant.</p>')
+      : '';
+  }
+
+  async function loadOperatorPanels() {
+    const game = S.games.find((item) => item['game-name'] === S.game);
+    const context = { game: S.game, discovery: 0, actions: [], retry: null };
+    operator = context;
+    $('[data-access]').hidden = true;
+    $('[data-access]').open = false;
+    $('[data-operator]').hidden = true;
+    $('[data-action-form]').hidden = true;
+    $('[data-seat-label]').hidden = true;
+    $('[data-action-result]').hidden = true;
+    await Promise.all([
+      loadActions(context),
+      game?.host && api(gameResource(context.game, 'access')).then((result) => drawAccess(context, result)),
+    ]);
+  }
+
+  $('[data-access]').addEventListener('change', async (event) => {
+    const context = operator;
+    const input = event.target;
+    if (!input.matches('[data-access-enabled], [data-grant]') || context.saving) return;
+    const data = input.matches('[data-access-enabled]') ? { enabled: input.checked } :
+      { seat: input.dataset.grant, operator: input.checked };
+    context.saving = true;
+    $$('input', $('[data-access]')).forEach((control) => { control.disabled = true; });
+    $('[data-access-status]').textContent = 'Saving…';
+    const result = await api(gameResource(context.game, 'access'), 'PUT', data);
+    context.saving = false;
+    drawAccess(context, result);
+    if (context === operator && result.ok && Object.hasOwn(data, 'enabled')) {
+      await loadActions(context);
+    }
+  });
+
+  $('[data-seat]').addEventListener('change', (event) => {
+    $('[data-action-form]').hidden = true;
+    $('[data-action-result]').hidden = true;
+    const seat = event.target.value;
+    if (seat) loadActions(operator, seat);
+    else {
+      operator.discovery++;
+      operator.seat = null;
+      operatorStatus('Choose the player seat to act as.');
+    }
+  });
+  $('[data-action]').addEventListener('change', () => drawAction(operator));
+
+  $('[data-action-form]').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const context = operator;
+    if (context.pending || !context.seat || !$('[data-action]').value) return;
+    const output = $('[data-action-result]');
+    output.hidden = false;
+    let data;
+    try {
+      data = JSON.parse($('[data-action-input]').value);
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error();
+    } catch (_) {
+      output.textContent = 'Enter a valid JSON object.';
+      return;
+    }
+    const action = $('[data-action]').value;
+    const key = JSON.stringify([context.seat, action, data]);
+    if (context.retry?.key !== key) context.retry = { key, id: crypto.randomUUID() };
+    output.textContent = 'Running…';
+    context.pending = true;
+    $('[data-action-run]').disabled = true;
+    $('[data-action]').disabled = true;
+    $('[data-seat]').disabled = true;
+    const result = await api(gameResource(context.game, 'actions'), 'POST',
+      { seat: context.seat, 'event-type': action, data, 'request-id': context.retry.id });
+    context.pending = false;
+    if (context !== operator) return;
+    $('[data-action-run]').disabled = false;
+    $('[data-action]').disabled = false;
+    $('[data-seat]').disabled = false;
+    const code = result.body?.error;
+    if (result.ok || (result.status > 0 && result.status < 500 && code !== 'action-outcome-unknown')) {
+      context.retry = null;
+    }
+    output.textContent = result.ok ? (result.body.data == null ? 'Action completed.' : JSON.stringify(result.body.data, null, 2))
+      : result.body?.message || 'The action could not be completed.';
+    if (result.ok) loadFlywheel();
+    if (!result.ok && ['access-required', 'dashboard-disabled', 'seat-required'].includes(code)) {
+      $('[data-action-form]').hidden = true;
+      $('[data-seat-label]').hidden = true;
+      loadFlywheel();
+    }
+  });
 
   // --- game switcher ----------------------------------------------------------
   /* Hosts can run dozens of games, so the switcher is a filter box over the
@@ -403,7 +564,7 @@
     pushRecent(name);
     if (name === S.game) return;
     S.game = name; S.model = null; S.selected = null;
-    switcherLabel(); remember(); loadFlywheel();
+    switcherLabel(); remember(); loadFlywheel(); loadOperatorPanels();
   }
 
   // --- events ---------------------------------------------------------------

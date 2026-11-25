@@ -75,6 +75,18 @@
       (is (= 401 (:status (req "app.coselling.example" "/api/app/games/the-js/flywheel"))))
       (is (false? @called)))))
 
+(deftest dashboard-preserves-mom-json-errors
+  (doseq [[path status code] [["/api/app/games" 401 "unauthorized"]
+                             ["/api/app/games/the-js/flywheel" 403 "access-required"]]]
+    (with-redefs [http/get (fn [_ opts]
+                            (http/coerce-response-body
+                             opts {:status status
+                                   :headers {"content-type" "application/json"}
+                                   :body (.getBytes (json/generate-string {:error code}) "UTF-8")}))]
+      (let [response (req "app.coselling.example" path :token "invalid-or-revoked")]
+        (is (= status (:status response)))
+        (is (= code (get-in response [:body :error])))))))
+
 (deftest the-flywheel-rechecks-access-on-every-request
   (let [calls (atom [])
         allowed? (atom true)]
